@@ -13,8 +13,8 @@
     "splashImageUrl": "https://YOUR_DOMAIN/splash.png",
     "splashBackgroundColor": "#001233",
     "buttonTitle": "🕹️ Play Dooble Base Jump",
-    "subtitle": "Стрибай якомога вище",
-    "description": "Doodle Jump-подібна гра на Base.",
+    "subtitle": "Jump as high as you can",
+    "description": "A Doodle Jump-style platformer built for Base.",
     "primaryCategory": "games",
     "tags": ["game", "arcade", "base"]
   }

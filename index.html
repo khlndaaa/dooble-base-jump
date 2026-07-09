@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -167,48 +167,48 @@
   <canvas id="game"></canvas>
 
   <div class="hud">
-    <div class="score-pill" id="scoreHud">0 м</div>
+    <div class="score-pill" id="scoreHud">0 m</div>
   </div>
 
-  <div class="controls-hint" id="controlsHint">нахиляй пальцем ← / → щоб рухати думлю</div>
+  <div class="controls-hint" id="controlsHint">tap left / right to move</div>
 
   <!-- Start screen -->
   <div class="overlay" id="startScreen">
     <h1 class="logo">Dooble Base<br/><span>Jump</span></h1>
-    <p class="tagline">Стрибай якомога вище. Не падай.</p>
-    <button class="btn btn-primary" id="playBtn">Почати гру</button>
+    <p class="tagline">Jump as high as you can. Don't fall.</p>
+    <button class="btn btn-primary" id="playBtn">Play</button>
   </div>
 
   <!-- Game over screen -->
   <div class="overlay hidden" id="gameOverScreen">
-    <h1 class="logo">Фініш!</h1>
+    <h1 class="logo">Game Over!</h1>
     <div class="stat-row">
       <div class="stat">
         <div class="stat-num" id="finalScore">0</div>
-        <div class="stat-label">метрів</div>
+        <div class="stat-label">meters</div>
       </div>
     </div>
-    <button class="btn btn-primary" id="retryBtn">Ще раз</button>
+    <button class="btn btn-primary" id="retryBtn">Play Again</button>
   </div>
 </div>
 
 <script>
 /* =========================================================
-   FARCASTER MINI APP SDK — сигналізуємо готовність
+   FARCASTER MINI APP SDK — signal readiness
    ========================================================= */
 (async () => {
   try {
     const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk');
-    await sdk.actions.ready(); // ховає splash screen хоста
+    await sdk.actions.ready(); // hides the host's splash screen
   } catch (e) {
-    console.log('Farcaster SDK недоступний (запущено поза Farcaster) — це нормально для звичайного браузера.');
+    console.log('Farcaster SDK not available (running outside Farcaster) — that is expected in a plain browser.');
   }
 })();
 
 const currentSkin = { body: '#0052FF' };
 
 /* =========================================================
-   ГРА: Doodle-Jump-клон на canvas
+   GAME: Doodle Jump clone on canvas
    ========================================================= */
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -244,7 +244,7 @@ function resetGame() {
   running = true;
   keys = { left:false, right:false };
 
-  // стартова платформа під гравцем
+  // starting platform under the player
   platforms.push({ x: W/2 - PLATFORM_W/2, y: H - 90, type:'static', vx:0 });
 
   let y = H - 90;
@@ -278,7 +278,7 @@ function update(dt) {
   player.vy += GRAVITY;
   player.y += player.vy;
 
-  // камера рухається вгору, коли гравець вище середини екрана
+  // camera moves up when the player is above screen-center threshold
   const threshold = H * 0.42;
   if (player.y < threshold) {
     const dy = threshold - player.y;
@@ -288,7 +288,7 @@ function update(dt) {
     for (const p of platforms) p.y += dy;
   }
 
-  // рух платформ, що рухаються
+  // move moving platforms
   for (const p of platforms) {
     if (p.type === 'moving') {
       p.x += p.vx * 1.6;
@@ -296,7 +296,7 @@ function update(dt) {
     }
   }
 
-  // колізії (тільки коли падаємо)
+  // collisions (only while falling)
   if (player.vy > 0) {
     for (const p of platforms) {
       if (p.dead) continue;
@@ -310,14 +310,14 @@ function update(dt) {
     }
   }
 
-  // видаляємо платформи, що зникли знизу, додаємо нові згори
+  // drop platforms that fell off-screen, spawn new ones above
   platforms = platforms.filter(p => p.y < H + 40 && !p.dead);
   while (platforms.length < 9) {
     const topY = Math.min(...platforms.map(p => p.y));
     platforms.push(spawnPlatform(topY - (55 + Math.random()*35)));
   }
 
-  document.getElementById('scoreHud').textContent = score + ' м';
+  document.getElementById('scoreHud').textContent = score + ' m';
 
   if (player.y > H + 60) endGame();
 }
@@ -327,17 +327,17 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(x + PLAYER_W/2, y + PLAYER_H/2);
   if (player.vx < -0.3) ctx.scale(-1,1);
-  // тіло — крапля кольору обраного скіна
+  // body — blob in the selected skin color
   ctx.beginPath();
   ctx.fillStyle = currentSkin.body;
   ctx.ellipse(0, 4, 19, 17, 0, 0, Math.PI*2);
   ctx.fill();
-  // очі
+  // eyes
   ctx.fillStyle = '#F5F7FA';
   ctx.beginPath(); ctx.ellipse(7, -2, 6, 7, 0, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = '#001233';
   ctx.beginPath(); ctx.ellipse(9, -1, 2.6, 3, 0, 0, Math.PI*2); ctx.fill();
-  // ріжки
+  // horns
   ctx.strokeStyle = '#0052FF'; ctx.lineWidth = 4; ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(-6,-14); ctx.lineTo(-10,-22); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(4,-16); ctx.lineTo(2,-24); ctx.stroke();
@@ -386,7 +386,7 @@ function endGame() {
 }
 
 /* =========================================================
-   КЕРУВАННЯ
+   CONTROLS
    ========================================================= */
 function bindControls() {
   window.addEventListener('keydown', e => {

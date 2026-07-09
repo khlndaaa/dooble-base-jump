@@ -1,54 +1,56 @@
-# Dooble Base Jump — гра (без токена)
+# Dooble Base Jump — game (no token yet)
 
-Це чиста версія гри: Doodle Jump-клон, готовий як Farcaster/Base Mini App,
-без жодного блокчейн-функціоналу. Токен і винагороди можна додати пізніше
-окремим кроком (є готовий контракт у попередній версії проєкту).
+A clean version of the game: a Doodle Jump-style platformer, ready to run
+as a Farcaster/Base Mini App, with zero blockchain code. Token and reward
+logic can be added later as a separate step (a ready-made contract exists
+in a previous iteration of this project).
 
 ```
 dbj-game/
-  index.html                  # уся гра — HTML/CSS/JS в одному файлі
-  .well-known/farcaster.json  # маніфест Mini App
+  index.html                  # the whole game — HTML/CSS/JS in one file
+  .well-known/farcaster.json  # Mini App manifest
 ```
 
-## Локальний перегляд
+## Run it locally
 
 ```bash
 cd dbj-game
 python3 -m http.server 8080
-# відкрити http://localhost:8080
+# open http://localhost:8080
 ```
 
-## Деплой (найшвидший шлях — Vercel)
+## Deploy (fastest path — Vercel)
 
-1. Заливаєш цю папку в GitHub-репозиторій (або перетягуєш напряму у Vercel — є drag&drop деплой без git).
-2. На https://vercel.com → New Project → імпортуєш репозиторій → Deploy.
-   Жодних build-налаштувань не треба, це статичний HTML.
-3. Vercel дасть домен типу `dooble-base-jump.vercel.app` з готовим HTTPS.
-4. У `index.html` (рядок з `fc:miniapp`) і в `.well-known/farcaster.json`
-   заміни всі `YOUR_DOMAIN` на цей реальний домен.
-5. Redeploy (Vercel робить це автоматично при новому пуші в git, або
-   вручну кнопкою "Redeploy").
-6. Перевір, що `https://твій-домен/.well-known/farcaster.json` реально
-   відкривається в браузері — без цього Base App/Farcaster не визнає
-   застосунок як Mini App.
+1. Push this folder to a GitHub repo (or drag-and-drop it straight into Vercel — no git required for that path).
+2. Go to https://vercel.com → New Project → Import your repo → Deploy.
+   No build settings needed, this is a static HTML site.
+3. Vercel gives you a domain like `dooble-base-jump.vercel.app` with HTTPS out of the box.
+4. In `index.html` (the `fc:miniapp` meta tag) and in `.well-known/farcaster.json`,
+   replace every `YOUR_DOMAIN` with your real domain.
+5. Redeploy (Vercel does this automatically on every git push, or you can
+   trigger it manually with the "Redeploy" button).
+6. Confirm that `https://your-domain/.well-known/farcaster.json` actually
+   loads in a browser — without this, Base App/Farcaster won't recognize
+   the app as a Mini App.
 
-## Підключення до Base App / Farcaster
+## Connecting to Base App / Farcaster
 
-1. Відкрий Warpcast → Settings → Developer Tools → Manifest Tool
-   (інструмент може називатись трохи інакше залежно від поточної версії
-   Warpcast — шукай "Mini App Manifest" в Developer Tools).
-2. Вкажи свій домен, інструмент згенерує `accountAssociation`
-   (`header`/`payload`/`signature`) — встав ці значення в
-   `.well-known/farcaster.json` замість `REPLACE_WITH_YOUR_HEADER` і т.д.
-3. Redeploy ще раз із фінальним маніфестом.
-4. Постни в Farcaster посилання на свій домен — має розгорнутись
-   як Mini App картка з кнопкою "🕹️ Play Dooble Base Jump".
+1. Open Warpcast → Settings → Developer Tools → Manifest Tool
+   (naming may vary slightly depending on the current Warpcast version —
+   look for "Mini App Manifest" under Developer Tools).
+2. Enter your domain; the tool generates `accountAssociation`
+   (`header`/`payload`/`signature`) — paste those values into
+   `.well-known/farcaster.json` in place of `REPLACE_WITH_YOUR_HEADER`, etc.
+3. Redeploy once more with the final manifest.
+4. Post a link to your domain in Farcaster — it should unfurl as a Mini App
+   card with a "🕹️ Play Dooble Base Jump" button.
 
-## Далі, коли захочеш повернути токен
+## Bringing the token back later
 
-У попередній версії проєкту вже готові:
-- `DoobleBaseJumpToken.sol` — ERC-20 DBJ, фіксований саплай 1 млрд
-- `GameRewards.sol` — claim з холд-бонусом 1.5x, добовим лімітом і anti-sybil підходом через Farcaster FID
+A previous iteration of this project already has:
+- `DoobleBaseJumpToken.sol` — the DBJ ERC-20, fixed 1B supply
+- `GameRewards.sol` — claim logic with a 1.5x hold-boost, a daily cap,
+  and an anti-sybil approach built around Farcaster FIDs
 
-Просто попроси доклеїти цей функціонал назад у цю чисту версію гри,
-коли буде готовність деплоїти контракти.
+Just ask to wire that functionality back into this clean version of the
+game whenever you're ready to deploy the contracts.
