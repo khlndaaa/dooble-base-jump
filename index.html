@@ -6,7 +6,7 @@
 <title>Dooble Base Jump</title>
 
 <!-- Farcaster Mini App embed metadata -->
-<meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://dooble-base-jump.vercel.app/og-image.png","button":{"title":"🕹️ Play Dooble Base Jump","action":{"type":"launch_miniapp","url":"https://dooble-base-jump.vercel.app","name":"Dooble Base Jump","splashImageUrl":"https://dooble-base-jump.vercel.app/splash.png","splashBackgroundColor":"#060B1F"}}}' />
+<meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://YOUR_DOMAIN/og-image.png","button":{"title":"🕹️ Play Dooble Base Jump","action":{"type":"launch_miniapp","url":"https://YOUR_DOMAIN","name":"Dooble Base Jump","splashImageUrl":"https://YOUR_DOMAIN/splash.png","splashBackgroundColor":"#060B1F"}}}' />
 
 <style>
   :root{
@@ -171,6 +171,49 @@
     text-align:center; font-size:11px; opacity:0.5;
     z-index:5; pointer-events:none;
   }
+  .btn-outline{
+    background:var(--panel-bg);
+    color:var(--text);
+    border:1.5px solid var(--panel-border);
+    backdrop-filter:blur(10px);
+  }
+  .wallet-line{
+    font-size:12px; opacity:0.6; margin-top:12px; font-family:monospace;
+    min-height:16px;
+  }
+  .save-status{
+    font-size:12px; opacity:0.75; margin-top:14px; min-height:16px;
+  }
+  .leaderboard-list{
+    width:100%; max-width:300px;
+    margin:8px 0 22px;
+    display:flex; flex-direction:column; gap:6px;
+    max-height:38vh; overflow-y:auto;
+  }
+  .leaderboard-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    padding:8px 12px;
+    font-size:13px;
+  }
+  .leaderboard-rank{
+    font-family:var(--font-display); font-weight:700;
+    color:var(--base-blue-bright);
+    width:22px;
+  }
+  .leaderboard-player{
+    flex:1; text-align:left; margin-left:6px;
+    font-family:monospace; font-size:12px; opacity:0.85;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .leaderboard-score{
+    font-family:var(--font-display); font-weight:700;
+  }
+  .leaderboard-empty{
+    font-size:13px; opacity:0.6; margin:10px 0 22px;
+  }
 </style>
 </head>
 <body>
@@ -189,6 +232,9 @@
     <h1 class="logo">Dooble Base<br/><span>Jump</span></h1>
     <p class="tagline">Jump as high as you can. Don't fall.</p>
     <button class="btn btn-primary" id="playBtn">Play</button>
+    <button class="btn btn-outline" id="connectBtn">Connect Base Wallet</button>
+    <button class="btn btn-outline" id="leaderboardBtn">🏆 Leaderboard</button>
+    <div class="wallet-line" id="walletLine">wallet not connected</div>
   </div>
 
   <!-- Game over screen -->
@@ -201,6 +247,15 @@
       </div>
     </div>
     <button class="btn btn-primary" id="retryBtn">Play Again</button>
+    <button class="btn btn-outline" id="viewLeaderboardBtn">🏆 Leaderboard</button>
+    <div class="save-status" id="saveStatus"></div>
+  </div>
+
+  <!-- Leaderboard screen -->
+  <div class="overlay hidden" id="leaderboardScreen">
+    <h1 class="logo">Top Jumpers</h1>
+    <div class="leaderboard-list" id="leaderboardList"></div>
+    <button class="btn btn-primary" id="closeLeaderboardBtn">Close</button>
   </div>
 </div>
 
@@ -212,10 +267,127 @@
   try {
     const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk');
     await sdk.actions.ready(); // hides the host's splash screen
+    window.__fcSdk = sdk;
   } catch (e) {
     console.log('Farcaster SDK not available (running outside Farcaster) — that is expected in a plain browser.');
   }
 })();
+
+/* =========================================================
+   WALLET — Base App / Farcaster wallet connection, read-only.
+   Only used to identify the player for the leaderboard — no
+   contract calls, no token, nothing that spends gas.
+   ========================================================= */
+const BASE_CHAIN_ID_HEX = '0x2105'; // 8453, Base mainnet
+let walletAddress = null;
+
+async function getEip1193Provider() {
+  if (window.__fcSdk) {
+    try {
+      const provider = await window.__fcSdk.wallet.getEthereumProvider();
+      if (provider) return provider;
+    } catch (e) { /* fall through to window.ethereum */ }
+  }
+  return window.ethereum || null;
+}
+
+async function connectWallet() {
+  const lineEl = document.getElementById('walletLine');
+  const provider = await getEip1193Provider();
+  if (!provider) {
+    lineEl.textContent = 'no wallet found (open in Base App or install a wallet)';
+    return;
+  }
+  try {
+    const accounts = await provider.request({ method: 'eth_requestAccounts' });
+    walletAddress = accounts && accounts[0];
+    if (!walletAddress) { lineEl.textContent = 'no account returned'; return; }
+
+    try {
+      await provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_CHAIN_ID_HEX }],
+      });
+    } catch (switchErr) {
+      console.warn('Could not switch to Base — continuing anyway, this is read-only.', switchErr);
+    }
+
+    const short = walletAddress.slice(0, 6) + '…' + walletAddress.slice(-4);
+    lineEl.textContent = 'connected: ' + short;
+  } catch (e) {
+    console.error(e);
+    lineEl.textContent = 'connection rejected';
+  }
+}
+
+document.getElementById('connectBtn').addEventListener('click', connectWallet);
+
+/* =========================================================
+   LEADERBOARD — backed by a small serverless API (/api/leaderboard)
+   ========================================================= */
+function playerLabel() {
+  if (walletAddress) return walletAddress.slice(0, 6) + '…' + walletAddress.slice(-4);
+  return 'anon-' + Math.random().toString(36).slice(2, 8);
+}
+
+async function submitScore(finalScore) {
+  const statusEl = document.getElementById('saveStatus');
+  if (!walletAddress) {
+    statusEl.textContent = 'Connect your wallet to save this run to the leaderboard.';
+    return;
+  }
+  try {
+    statusEl.textContent = 'Saving score…';
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player: playerLabel(), score: finalScore }),
+    });
+    if (!res.ok) throw new Error('bad response');
+    statusEl.textContent = 'Saved to the leaderboard ✅';
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Could not save score (leaderboard not set up yet?)';
+  }
+}
+
+async function loadLeaderboard() {
+  const listEl = document.getElementById('leaderboardList');
+  listEl.innerHTML = '<div class="leaderboard-empty">Loading…</div>';
+  try {
+    const res = await fetch('/api/leaderboard');
+    if (!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    const entries = data.leaderboard || [];
+    if (entries.length === 0) {
+      listEl.innerHTML = '<div class="leaderboard-empty">No runs yet — be the first to jump!</div>';
+      return;
+    }
+    listEl.innerHTML = entries.map((e, i) => `
+      <div class="leaderboard-row">
+        <span class="leaderboard-rank">#${i + 1}</span>
+        <span class="leaderboard-player">${e.player}</span>
+        <span class="leaderboard-score">${e.score} m</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error(e);
+    listEl.innerHTML = '<div class="leaderboard-empty">Leaderboard not set up yet — see README.</div>';
+  }
+}
+
+function openLeaderboard() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('leaderboardScreen').classList.remove('hidden');
+  loadLeaderboard();
+}
+document.getElementById('leaderboardBtn').addEventListener('click', openLeaderboard);
+document.getElementById('viewLeaderboardBtn').addEventListener('click', openLeaderboard);
+document.getElementById('closeLeaderboardBtn').addEventListener('click', () => {
+  document.getElementById('leaderboardScreen').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+});
 
 /* =========================================================
    THEME — light / dark, toggled via a class on #app
@@ -514,7 +686,9 @@ function loop(t) {
 function endGame() {
   running = false;
   document.getElementById('finalScore').textContent = score;
+  document.getElementById('saveStatus').textContent = '';
   document.getElementById('gameOverScreen').classList.remove('hidden');
+  submitScore(score);
 }
 
 /* =========================================================
@@ -546,12 +720,14 @@ function bindControls() {
 document.getElementById('playBtn').onclick = () => {
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('leaderboardScreen').classList.add('hidden');
   resetGame();
   lastTime = performance.now();
   requestAnimationFrame(loop);
 };
 document.getElementById('retryBtn').onclick = () => {
   document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('leaderboardScreen').classList.add('hidden');
   resetGame();
   lastTime = performance.now();
   requestAnimationFrame(loop);
