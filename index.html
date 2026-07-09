@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Dooble Base Jump</title>
+
+<!-- Farcaster Mini App embed metadata -->
+<meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://YOUR_DOMAIN/og-image.png","button":{"title":"🕹️ Play Dooble Base Jump","action":{"type":"launch_miniapp","url":"https://YOUR_DOMAIN","name":"Dooble Base Jump","splashImageUrl":"https://YOUR_DOMAIN/splash.png","splashBackgroundColor":"#001233"}}}' />
+
+<style>
+  :root{
+    --base-blue:#0052FF;
+    --navy:#001233;
+    --navy-soft:#0A1F44;
+    --cream:#F5F7FA;
+    --gold:#FFB800;
+    --moss:#6BCB77;
+    --danger:#FF5A5F;
+    --font-display:'Space Grotesk', system-ui, sans-serif;
+    --font-body:'Inter', system-ui, sans-serif;
+  }
+  @font-face{
+    font-family:'Space Grotesk';
+    src:local('Space Grotesk');
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--navy);
+    font-family:var(--font-body);
+    color:var(--cream);
+    user-select:none;
+  }
+  #app{
+    position:relative;
+    width:100%;
+    height:100dvh;
+    max-width:480px;
+    margin:0 auto;
+    background:linear-gradient(180deg, #4A9DFF 0%, #8CC6FF 45%, #C9E6FF 100%);
+    overflow:hidden;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    touch-action:none;
+  }
+  .hud{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:14px 16px;
+    pointer-events:none;
+    z-index:5;
+  }
+  .score-pill{
+    background:rgba(0,18,51,0.55);
+    backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:999px;
+    padding:8px 16px;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:0.02em;
+  }
+  .token-pill{
+    background:rgba(0,18,51,0.55);
+    backdrop-filter:blur(6px);
+    border:1px solid rgba(255,184,0,0.35);
+    border-radius:999px;
+    padding:8px 14px;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px;
+    color:var(--gold);
+    display:flex; align-items:center; gap:6px;
+  }
+  .overlay{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(120% 100% at 50% 0%, rgba(0,82,255,0.35), rgba(0,18,51,0.92) 65%);
+    z-index:10;
+    padding:32px 24px;
+    text-align:center;
+  }
+  .overlay.hidden{ display:none; }
+  .logo{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:38px;
+    line-height:1.05;
+    margin:0 0 4px;
+    color:var(--cream);
+  }
+  .logo span{ color:var(--gold); }
+  .tagline{
+    font-size:14px;
+    opacity:0.75;
+    margin:0 0 28px;
+    max-width:280px;
+  }
+  .btn{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:16px;
+    border:none;
+    border-radius:14px;
+    padding:14px 28px;
+    margin:6px 0;
+    cursor:pointer;
+    width:240px;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .btn:active{ transform:scale(0.96); }
+  .btn-primary{ background:var(--base-blue); color:white; }
+  .btn-gold{ background:var(--gold); color:var(--navy); }
+  .btn-outline{
+    background:transparent; color:var(--cream);
+    border:1.5px solid rgba(245,247,250,0.4);
+  }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+  .stat-row{
+    display:flex; gap:28px; margin:18px 0 26px;
+  }
+  .stat{ text-align:center; }
+  .stat-num{
+    font-family:var(--font-display); font-weight:700; font-size:26px;
+    color:var(--gold);
+  }
+  .stat-label{ font-size:11px; opacity:0.65; text-transform:uppercase; letter-spacing:0.08em; }
+  .wallet-line{
+    font-size:12px; opacity:0.6; margin-top:14px; font-family:monospace;
+  }
+  .boost-badge{
+    margin-top:10px; font-size:12px; font-weight:700;
+    color:var(--gold); min-height:16px;
+  }
+  .skins-row{
+    display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; justify-content:center; max-width:280px;
+  }
+  .skin-swatch{
+    width:52px; height:52px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid rgba(255,255,255,0.15);
+    cursor:pointer; position:relative;
+    background:rgba(0,18,51,0.4);
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .skin-swatch:active{ transform:scale(0.94); }
+  .skin-swatch.selected{ border-color:var(--gold); }
+  .skin-swatch.locked{ opacity:0.35; cursor:not-allowed; }
+  .skin-swatch .lock{
+    position:absolute; bottom:3px; right:3px; font-size:11px;
+  }
+  .skin-dot{ width:26px; height:26px; border-radius:50%; }
+  .controls-hint{
+    position:absolute; bottom:12px; left:0; right:0;
+    text-align:center; font-size:11px; opacity:0.55;
+    z-index:5; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="score-pill" id="scoreHud">0 м</div>
+  </div>
+
+  <div class="controls-hint" id="controlsHint">нахиляй пальцем ← / → щоб рухати думлю</div>
+
+  <!-- Start screen -->
+  <div class="overlay" id="startScreen">
+    <h1 class="logo">Dooble Base<br/><span>Jump</span></h1>
+    <p class="tagline">Стрибай якомога вище. Не падай.</p>
+    <button class="btn btn-primary" id="playBtn">Почати гру</button>
+  </div>
+
+  <!-- Game over screen -->
+  <div class="overlay hidden" id="gameOverScreen">
+    <h1 class="logo">Фініш!</h1>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-num" id="finalScore">0</div>
+        <div class="stat-label">метрів</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="retryBtn">Ще раз</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   FARCASTER MINI APP SDK — сигналізуємо готовність
+   ========================================================= */
+(async () => {
+  try {
+    const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk');
+    await sdk.actions.ready(); // ховає splash screen хоста
+  } catch (e) {
+    console.log('Farcaster SDK недоступний (запущено поза Farcaster) — це нормально для звичайного браузера.');
+  }
+})();
+
+const currentSkin = { body: '#0052FF' };
+
+/* =========================================================
+   ГРА: Doodle-Jump-клон на canvas
+   ========================================================= */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W, H, DPR;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+const GRAVITY = 0.32;
+const JUMP_V = -11.5;
+const SPRING_V = -19;
+const PLATFORM_W = 62, PLATFORM_H = 14;
+const PLAYER_W = 40, PLAYER_H = 40;
+
+let player, platforms, camY, score, running, keys;
+let lastTime = 0;
+
+function resetGame() {
+  resize();
+  player = { x: W/2 - PLAYER_W/2, y: H - 140, vx: 0, vy: JUMP_V, dir: 1 };
+  platforms = [];
+  camY = 0;
+  score = 0;
+  running = true;
+  keys = { left:false, right:false };
+
+  // стартова платформа під гравцем
+  platforms.push({ x: W/2 - PLATFORM_W/2, y: H - 90, type:'static', vx:0 });
+
+  let y = H - 90;
+  while (y > -H) {
+    y -= 55 + Math.random()*35;
+    platforms.push(spawnPlatform(y));
+  }
+}
+
+function spawnPlatform(y) {
+  const r = Math.random();
+  const x = 20 + Math.random() * (W - 40 - PLATFORM_W);
+  if (r < 0.12) return { x, y, type:'spring', vx:0 };
+  if (r < 0.30) return { x, y, type:'moving', vx: (Math.random()<0.5?-1:1) * (1 + Math.random()) };
+  if (r < 0.42) return { x, y, type:'breaking', vx:0 };
+  return { x, y, type:'static', vx:0 };
+}
+
+function update(dt) {
+  if (!running) return;
+
+  const accel = 0.9;
+  if (keys.left)  player.vx = Math.max(player.vx - accel, -6);
+  else if (keys.right) player.vx = Math.min(player.vx + accel, 6);
+  else player.vx *= 0.85;
+
+  player.x += player.vx;
+  if (player.x < -PLAYER_W) player.x = W;
+  if (player.x > W) player.x = -PLAYER_W;
+
+  player.vy += GRAVITY;
+  player.y += player.vy;
+
+  // камера рухається вгору, коли гравець вище середини екрана
+  const threshold = H * 0.42;
+  if (player.y < threshold) {
+    const dy = threshold - player.y;
+    player.y = threshold;
+    camY += dy;
+    score = Math.max(score, Math.floor(camY / 8));
+    for (const p of platforms) p.y += dy;
+  }
+
+  // рух платформ, що рухаються
+  for (const p of platforms) {
+    if (p.type === 'moving') {
+      p.x += p.vx * 1.6;
+      if (p.x < 10 || p.x > W - 10 - PLATFORM_W) p.vx *= -1;
+    }
+  }
+
+  // колізії (тільки коли падаємо)
+  if (player.vy > 0) {
+    for (const p of platforms) {
+      if (p.dead) continue;
+      const px = player.x + 6, pw = PLAYER_W - 12;
+      const withinX = px + pw > p.x && px < p.x + PLATFORM_W;
+      const withinY = player.y + PLAYER_H > p.y && player.y + PLAYER_H < p.y + PLATFORM_H + 14;
+      if (withinX && withinY) {
+        if (p.type === 'breaking') { p.dead = true; continue; }
+        player.vy = p.type === 'spring' ? SPRING_V : JUMP_V;
+      }
+    }
+  }
+
+  // видаляємо платформи, що зникли знизу, додаємо нові згори
+  platforms = platforms.filter(p => p.y < H + 40 && !p.dead);
+  while (platforms.length < 9) {
+    const topY = Math.min(...platforms.map(p => p.y));
+    platforms.push(spawnPlatform(topY - (55 + Math.random()*35)));
+  }
+
+  document.getElementById('scoreHud').textContent = score + ' м';
+
+  if (player.y > H + 60) endGame();
+}
+
+function drawPlayer() {
+  const x = player.x, y = player.y;
+  ctx.save();
+  ctx.translate(x + PLAYER_W/2, y + PLAYER_H/2);
+  if (player.vx < -0.3) ctx.scale(-1,1);
+  // тіло — крапля кольору обраного скіна
+  ctx.beginPath();
+  ctx.fillStyle = currentSkin.body;
+  ctx.ellipse(0, 4, 19, 17, 0, 0, Math.PI*2);
+  ctx.fill();
+  // очі
+  ctx.fillStyle = '#F5F7FA';
+  ctx.beginPath(); ctx.ellipse(7, -2, 6, 7, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#001233';
+  ctx.beginPath(); ctx.ellipse(9, -1, 2.6, 3, 0, 0, Math.PI*2); ctx.fill();
+  // ріжки
+  ctx.strokeStyle = '#0052FF'; ctx.lineWidth = 4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-6,-14); ctx.lineTo(-10,-22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,-16); ctx.lineTo(2,-24); ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlatform(p) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  let color = '#6BCB77';
+  if (p.type === 'moving') color = '#4AB8FF';
+  if (p.type === 'breaking') color = '#C97B4A';
+  if (p.type === 'spring') color = '#FFB800';
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, PLATFORM_W, PLATFORM_H, 7);
+  ctx.fill();
+  if (p.type === 'spring') {
+    ctx.strokeStyle = '#7A5200'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(PLATFORM_W/2 - 8, 0);
+    ctx.lineTo(PLATFORM_W/2 - 8, -10);
+    ctx.lineTo(PLATFORM_W/2 + 8, -14);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  for (const p of platforms) drawPlatform(p);
+  drawPlayer();
+}
+
+function loop(t) {
+  const dt = t - lastTime; lastTime = t;
+  update(dt);
+  draw();
+  if (running) requestAnimationFrame(loop);
+}
+
+function endGame() {
+  running = false;
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('gameOverScreen').classList.remove('hidden');
+}
+
+/* =========================================================
+   КЕРУВАННЯ
+   ========================================================= */
+function bindControls() {
+  window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+  });
+  canvas.addEventListener('touchstart', handleTouch, { passive:true });
+  canvas.addEventListener('touchmove', handleTouch, { passive:true });
+  canvas.addEventListener('touchend', () => { keys.left=false; keys.right=false; }, { passive:true });
+  function handleTouch(e) {
+    const t = e.touches[0]; if (!t) return;
+    const rect = canvas.getBoundingClientRect();
+    const rel = (t.clientX - rect.left) / rect.width;
+    keys.left = rel < 0.5; keys.right = rel >= 0.5;
+  }
+}
+
+/* =========================================================
+   UI WIRING
+   ========================================================= */
+document.getElementById('playBtn').onclick = () => {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  resetGame();
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+};
+document.getElementById('retryBtn').onclick = () => {
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  resetGame();
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+};
+resize();
+bindControls();
+</script>
+</body>
+</html>

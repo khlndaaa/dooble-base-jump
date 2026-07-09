@@ -1,0 +1,21 @@
+{
+  "accountAssociation": {
+    "header": "REPLACE_WITH_YOUR_HEADER",
+    "payload": "REPLACE_WITH_YOUR_PAYLOAD",
+    "signature": "REPLACE_WITH_YOUR_SIGNATURE"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Dooble Base Jump",
+    "iconUrl": "https://YOUR_DOMAIN/icon.png",
+    "homeUrl": "https://YOUR_DOMAIN",
+    "imageUrl": "https://YOUR_DOMAIN/og-image.png",
+    "splashImageUrl": "https://YOUR_DOMAIN/splash.png",
+    "splashBackgroundColor": "#001233",
+    "buttonTitle": "🕹️ Play Dooble Base Jump",
+    "subtitle": "Стрибай якомога вище",
+    "description": "Doodle Jump-подібна гра на Base.",
+    "primaryCategory": "games",
+    "tags": ["game", "arcade", "base"]
+  }
+}
