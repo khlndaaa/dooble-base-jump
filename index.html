@@ -12,15 +12,39 @@
   :root{
     --base-blue:#0052FF;
     --base-blue-bright:#2F6BFF;
-    --ink:#060B1F;
-    --panel:#0B1640;
-    --panel-soft:#101F52;
-    --ice:#EAF1FF;
     --glow:#6FA8FF;
     --spring:#8ED9FF;
     --danger:#FF5A7A;
     --font-display:'Space Grotesk', system-ui, sans-serif;
     --font-body:'Inter', system-ui, sans-serif;
+
+    /* dark theme (default) */
+    --bg-grad:
+      radial-gradient(120% 60% at 50% 0%, #123180 0%, transparent 60%),
+      linear-gradient(180deg, #060B1F 0%, #0A1440 55%, #0E1D5C 100%);
+    --text:#EAF1FF;
+    --text-dim:rgba(234,241,255,0.7);
+    --panel-bg:rgba(11,22,64,0.6);
+    --panel-border:rgba(111,168,255,0.35);
+    --overlay-bg:
+      radial-gradient(90% 60% at 50% 0%, rgba(47,107,255,0.30), transparent 60%),
+      rgba(6,11,31,0.88);
+    --grid-line:rgba(111,168,255,0.09);
+    --toggle-icon-bg:rgba(11,22,64,0.6);
+  }
+  #app.light{
+    --bg-grad:
+      radial-gradient(120% 60% at 50% 0%, rgba(47,107,255,0.16) 0%, transparent 60%),
+      linear-gradient(180deg, #F3F7FF 0%, #E4EDFF 55%, #D2E2FF 100%);
+    --text:#0B1640;
+    --text-dim:rgba(11,22,64,0.65);
+    --panel-bg:rgba(255,255,255,0.62);
+    --panel-border:rgba(47,107,255,0.28);
+    --overlay-bg:
+      radial-gradient(90% 60% at 50% 0%, rgba(47,107,255,0.14), transparent 60%),
+      rgba(244,248,255,0.86);
+    --grid-line:rgba(11,22,64,0.08);
+    --toggle-icon-bg:rgba(255,255,255,0.7);
   }
   @font-face{
     font-family:'Space Grotesk';
@@ -29,9 +53,8 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{
     margin:0; padding:0; height:100%; overflow:hidden;
-    background:var(--ink);
+    background:#060B1F;
     font-family:var(--font-body);
-    color:var(--ice);
     user-select:none;
   }
   #app{
@@ -40,10 +63,10 @@
     height:100dvh;
     max-width:480px;
     margin:0 auto;
-    background:
-      radial-gradient(120% 60% at 50% 0%, #123180 0%, transparent 60%),
-      linear-gradient(180deg, #060B1F 0%, #0A1440 55%, #0E1D5C 100%);
+    background:var(--bg-grad);
+    color:var(--text);
     overflow:hidden;
+    transition:background .35s ease, color .35s ease;
   }
   canvas{
     display:block;
@@ -55,13 +78,12 @@
     position:absolute; top:0; left:0; right:0;
     display:flex; justify-content:space-between; align-items:flex-start;
     padding:14px 16px;
-    pointer-events:none;
     z-index:5;
   }
   .score-pill{
-    background:rgba(11,22,64,0.6);
+    background:var(--panel-bg);
     backdrop-filter:blur(10px);
-    border:1px solid rgba(111,168,255,0.35);
+    border:1px solid var(--panel-border);
     box-shadow:0 0 24px rgba(47,107,255,0.25);
     border-radius:999px;
     padding:8px 18px;
@@ -69,13 +91,26 @@
     font-weight:700;
     font-size:18px;
     letter-spacing:0.02em;
+    color:var(--text);
+    pointer-events:none;
   }
+  .theme-toggle{
+    width:38px; height:38px;
+    border-radius:50%;
+    background:var(--toggle-icon-bg);
+    backdrop-filter:blur(10px);
+    border:1px solid var(--panel-border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px;
+    cursor:pointer;
+    pointer-events:auto;
+    transition:transform .12s ease;
+  }
+  .theme-toggle:active{ transform:scale(0.9); }
   .overlay{
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:
-      radial-gradient(90% 60% at 50% 0%, rgba(47,107,255,0.30), transparent 60%),
-      rgba(6,11,31,0.88);
+    background:var(--overlay-bg);
     backdrop-filter:blur(4px);
     z-index:10;
     padding:32px 24px;
@@ -89,11 +124,11 @@
     line-height:1.04;
     letter-spacing:-0.01em;
     margin:0 0 4px;
-    color:var(--ice);
+    color:var(--text);
   }
   .logo span{
     color:var(--base-blue-bright);
-    text-shadow:0 0 28px rgba(47,107,255,0.65);
+    text-shadow:0 0 28px rgba(47,107,255,0.45);
   }
   .tagline{
     font-size:14px;
@@ -116,7 +151,7 @@
   .btn:active{ transform:scale(0.96); }
   .btn-primary{
     background:linear-gradient(135deg, var(--base-blue-bright), var(--base-blue) 70%);
-    color:var(--ice);
+    color:#F5F9FF;
     box-shadow:0 8px 24px rgba(0,82,255,0.45);
   }
   .btn-primary:active{ box-shadow:0 4px 14px rgba(0,82,255,0.4); }
@@ -127,8 +162,8 @@
   .stat{ text-align:center; }
   .stat-num{
     font-family:var(--font-display); font-weight:700; font-size:30px;
-    color:var(--ice);
-    text-shadow:0 0 20px rgba(111,168,255,0.6);
+    color:var(--text);
+    text-shadow:0 0 20px rgba(111,168,255,0.5);
   }
   .stat-label{ font-size:11px; opacity:0.6; text-transform:uppercase; letter-spacing:0.1em; }
   .controls-hint{
@@ -144,6 +179,7 @@
 
   <div class="hud">
     <div class="score-pill" id="scoreHud">0 m</div>
+    <div class="theme-toggle" id="themeToggle" title="Toggle light/dark">🌙</div>
   </div>
 
   <div class="controls-hint" id="controlsHint">tap left / right to move</div>
@@ -180,6 +216,28 @@
     console.log('Farcaster SDK not available (running outside Farcaster) — that is expected in a plain browser.');
   }
 })();
+
+/* =========================================================
+   THEME — light / dark, toggled via a class on #app
+   ========================================================= */
+const appEl = document.getElementById('app');
+const themeToggleBtn = document.getElementById('themeToggle');
+let gridLineColor = 'rgba(111,168,255,0.09)';
+
+function readGridLineColor() {
+  gridLineColor = getComputedStyle(appEl).getPropertyValue('--grid-line').trim() || gridLineColor;
+}
+
+function setTheme(theme) {
+  appEl.classList.toggle('light', theme === 'light');
+  themeToggleBtn.textContent = theme === 'light' ? '☀️' : '🌙';
+  readGridLineColor();
+}
+
+themeToggleBtn.addEventListener('click', () => {
+  const isLight = appEl.classList.contains('light');
+  setTheme(isLight ? 'dark' : 'light');
+});
 
 /* =========================================================
    GAME: Doodle Jump clone on canvas
@@ -333,16 +391,53 @@ function drawPlayer() {
     ctx.stroke();
   };
 
+  // ears — drawn first so the top face's edge slightly overlaps their
+  // base, making them read as attached to the cube rather than floating.
+  const drawEar = (cx, cy, rot, fill, inner) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 0.42, s * 0.85, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(234,241,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.12, s * 0.2, s * 0.45, 0, 0, Math.PI * 2);
+    ctx.fillStyle = inner;
+    ctx.fill();
+    ctx.restore();
+  };
+  drawEar(-s * 0.62, -s * 2.15, -0.32, '#7FB4FF', '#0032B8');
+  drawEar(s * 0.72, -s * 2.28, 0.2, '#5E9CFF', '#0032B8');
+
   // left face (darkest), right face (mid), top face (brightest) — classic
   // isometric shading so the cube reads as 3D at a glance.
   drawFace([left, center, botC, botL], '#0032B8');
   drawFace([right, botR, botC, center], '#0052FF');
   drawFace([top, right, center, left], '#7FB4FF');
 
-  // a small emblem dot on the top face — nods to the Base mark
+  // one big cartoon eye on the front-right face — this is what turns a
+  // geometric cube into a character.
+  const eyeX = s * 0.62, eyeY = -s * 0.02;
   ctx.beginPath();
-  ctx.fillStyle = 'rgba(6,11,31,0.55)';
-  ctx.ellipse(0, -s * 0.78, s * 0.32, s * 0.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(eyeX, eyeY, s * 0.52, s * 0.58, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#F5F9FF';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(11,22,64,0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const lookX = Math.max(-0.5, Math.min(0.5, player.vx * 0.06));
+  ctx.beginPath();
+  ctx.ellipse(eyeX + s * (0.12 + lookX * 0.4), eyeY + s * 0.06, s * 0.24, s * 0.27, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#0B1640';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(eyeX + s * (0.04 + lookX * 0.4), eyeY - s * 0.08, s * 0.08, s * 0.09, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#F5F9FF';
   ctx.fill();
 
   ctx.restore();
@@ -389,7 +484,7 @@ function drawPlatform(p) {
 function drawGrid() {
   const spacing = 46;
   ctx.save();
-  ctx.strokeStyle = 'rgba(111,168,255,0.08)';
+  ctx.strokeStyle = gridLineColor;
   ctx.lineWidth = 1;
   const offsetY = camY % spacing;
   for (let y = -spacing; y < H + spacing; y += spacing) {
@@ -463,6 +558,7 @@ document.getElementById('retryBtn').onclick = () => {
 };
 resize();
 bindControls();
+setTheme('dark');
 </script>
 </body>
 </html>
