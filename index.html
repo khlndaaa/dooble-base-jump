@@ -417,6 +417,7 @@ themeToggleBtn.addEventListener('click', () => {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let W, H, DPR;
+let playerGlowGradient = null; // built once on first draw, see drawPlayer()
 
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -470,17 +471,22 @@ function spawnPlatform(y) {
 function update(dt) {
   if (!running) return;
 
-  const accel = 0.9;
+  // Normalize everything to a 60fps baseline so the game feels the same
+  // whether the device renders 60fps or drops to 30fps — without this,
+  // a slower device makes the cube move in visible jumps.
+  const scale = Math.min(dt / (1000 / 60), 3); // capped so a stalled tab can't cause a huge leap
+
+  const accel = 0.9 * scale;
   if (keys.left)  player.vx = Math.max(player.vx - accel, -6);
   else if (keys.right) player.vx = Math.min(player.vx + accel, 6);
-  else player.vx *= 0.85;
+  else player.vx *= Math.pow(0.85, scale);
 
-  player.x += player.vx;
+  player.x += player.vx * scale;
   if (player.x < -PLAYER_W) player.x = W;
   if (player.x > W) player.x = -PLAYER_W;
 
-  player.vy += GRAVITY;
-  player.y += player.vy;
+  player.vy += GRAVITY * scale;
+  player.y += player.vy * scale;
 
   // camera moves up when the player is above screen-center threshold
   const threshold = H * 0.42;
@@ -495,7 +501,7 @@ function update(dt) {
   // move moving platforms
   for (const p of platforms) {
     if (p.type === 'moving') {
-      p.x += p.vx * 1.6;
+      p.x += p.vx * 1.6 * scale;
       if (p.x < 10 || p.x > W - 10 - PLATFORM_W) p.vx *= -1;
     }
   }
@@ -543,10 +549,15 @@ function drawPlayer() {
   const botL   = { x: -s * 1.5, y: s * 0.95 };
   const botC   = { x: 0,        y: s * 1.7 };
 
-  const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, s * 2.6);
-  glow.addColorStop(0, 'rgba(111,168,255,0.45)');
-  glow.addColorStop(1, 'rgba(111,168,255,0)');
-  ctx.fillStyle = glow;
+  // gradients are always identical in this local, translated coordinate
+  // space, so build once and reuse — creating one every frame is one of
+  // the more expensive canvas calls and adds up on weaker devices.
+  if (!playerGlowGradient) {
+    playerGlowGradient = ctx.createRadialGradient(0, 0, 2, 0, 0, s * 2.6);
+    playerGlowGradient.addColorStop(0, 'rgba(111,168,255,0.45)');
+    playerGlowGradient.addColorStop(1, 'rgba(111,168,255,0)');
+  }
+  ctx.fillStyle = playerGlowGradient;
   ctx.beginPath();
   ctx.arc(0, 0, s * 2.6, 0, Math.PI * 2);
   ctx.fill();
@@ -615,6 +626,17 @@ function drawPlayer() {
   ctx.restore();
 }
 
+const platformGradients = {}; // cached per type — see drawPlatform()
+function getPlatformGradient(type, top, bottom) {
+  if (!platformGradients[type]) {
+    const grad = ctx.createLinearGradient(0, 0, 0, PLATFORM_H);
+    grad.addColorStop(0, top);
+    grad.addColorStop(1, bottom);
+    platformGradients[type] = grad;
+  }
+  return platformGradients[type];
+}
+
 function drawPlatform(p) {
   ctx.save();
   ctx.translate(p.x, p.y);
@@ -623,16 +645,16 @@ function drawPlatform(p) {
   if (p.type === 'breaking') { top = '#9FB3E0'; bottom = '#3A4A8A'; }
   if (p.type === 'spring')   { top = '#EAF7FF'; bottom = '#5EEAD4'; }
 
-  const grad = ctx.createLinearGradient(0, 0, 0, PLATFORM_H);
-  grad.addColorStop(0, top);
-  grad.addColorStop(1, bottom);
-  ctx.fillStyle = grad;
-  ctx.shadowColor = 'rgba(47,107,255,0.45)';
-  ctx.shadowBlur = 8;
+  // shadowBlur is one of the most expensive canvas operations and we'd
+  // otherwise pay for it on ~9 platforms every single frame — a thin
+  // border reads almost as well as a glow and costs far less.
+  ctx.fillStyle = getPlatformGradient(p.type, top, bottom);
+  ctx.strokeStyle = 'rgba(111,168,255,0.4)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.roundRect(0, 0, PLATFORM_W, PLATFORM_H, 7);
   ctx.fill();
-  ctx.shadowBlur = 0;
+  ctx.stroke();
 
   if (p.type === 'breaking') {
     ctx.strokeStyle = 'rgba(6,11,31,0.5)';
