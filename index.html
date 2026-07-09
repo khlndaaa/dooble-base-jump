@@ -6,17 +6,19 @@
 <title>Dooble Base Jump</title>
 
 <!-- Farcaster Mini App embed metadata -->
-<meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://YOUR_DOMAIN/og-image.png","button":{"title":"🕹️ Play Dooble Base Jump","action":{"type":"launch_miniapp","url":"https://YOUR_DOMAIN","name":"Dooble Base Jump","splashImageUrl":"https://YOUR_DOMAIN/splash.png","splashBackgroundColor":"#001233"}}}' />
+<meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://YOUR_DOMAIN/og-image.png","button":{"title":"🕹️ Play Dooble Base Jump","action":{"type":"launch_miniapp","url":"https://YOUR_DOMAIN","name":"Dooble Base Jump","splashImageUrl":"https://YOUR_DOMAIN/splash.png","splashBackgroundColor":"#060B1F"}}}' />
 
 <style>
   :root{
     --base-blue:#0052FF;
-    --navy:#001233;
-    --navy-soft:#0A1F44;
-    --cream:#F5F7FA;
-    --gold:#FFB800;
-    --moss:#6BCB77;
-    --danger:#FF5A5F;
+    --base-blue-bright:#2F6BFF;
+    --ink:#060B1F;
+    --panel:#0B1640;
+    --panel-soft:#101F52;
+    --ice:#EAF1FF;
+    --glow:#6FA8FF;
+    --spring:#8ED9FF;
+    --danger:#FF5A7A;
     --font-display:'Space Grotesk', system-ui, sans-serif;
     --font-body:'Inter', system-ui, sans-serif;
   }
@@ -27,9 +29,9 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{
     margin:0; padding:0; height:100%; overflow:hidden;
-    background:var(--navy);
+    background:var(--ink);
     font-family:var(--font-body);
-    color:var(--cream);
+    color:var(--ice);
     user-select:none;
   }
   #app{
@@ -38,7 +40,9 @@
     height:100dvh;
     max-width:480px;
     margin:0 auto;
-    background:linear-gradient(180deg, #4A9DFF 0%, #8CC6FF 45%, #C9E6FF 100%);
+    background:
+      radial-gradient(120% 60% at 50% 0%, #123180 0%, transparent 60%),
+      linear-gradient(180deg, #060B1F 0%, #0A1440 55%, #0E1D5C 100%);
     overflow:hidden;
   }
   canvas{
@@ -55,32 +59,24 @@
     z-index:5;
   }
   .score-pill{
-    background:rgba(0,18,51,0.55);
-    backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,0.15);
+    background:rgba(11,22,64,0.6);
+    backdrop-filter:blur(10px);
+    border:1px solid rgba(111,168,255,0.35);
+    box-shadow:0 0 24px rgba(47,107,255,0.25);
     border-radius:999px;
-    padding:8px 16px;
+    padding:8px 18px;
     font-family:var(--font-display);
     font-weight:700;
     font-size:18px;
     letter-spacing:0.02em;
   }
-  .token-pill{
-    background:rgba(0,18,51,0.55);
-    backdrop-filter:blur(6px);
-    border:1px solid rgba(255,184,0,0.35);
-    border-radius:999px;
-    padding:8px 14px;
-    font-family:var(--font-display);
-    font-weight:700;
-    font-size:15px;
-    color:var(--gold);
-    display:flex; align-items:center; gap:6px;
-  }
   .overlay{
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:radial-gradient(120% 100% at 50% 0%, rgba(0,82,255,0.35), rgba(0,18,51,0.92) 65%);
+    background:
+      radial-gradient(90% 60% at 50% 0%, rgba(47,107,255,0.30), transparent 60%),
+      rgba(6,11,31,0.88);
+    backdrop-filter:blur(4px);
     z-index:10;
     padding:32px 24px;
     text-align:center;
@@ -89,15 +85,19 @@
   .logo{
     font-family:var(--font-display);
     font-weight:700;
-    font-size:38px;
-    line-height:1.05;
+    font-size:40px;
+    line-height:1.04;
+    letter-spacing:-0.01em;
     margin:0 0 4px;
-    color:var(--cream);
+    color:var(--ice);
   }
-  .logo span{ color:var(--gold); }
+  .logo span{
+    color:var(--base-blue-bright);
+    text-shadow:0 0 28px rgba(47,107,255,0.65);
+  }
   .tagline{
     font-size:14px;
-    opacity:0.75;
+    opacity:0.7;
     margin:0 0 28px;
     max-width:280px;
   }
@@ -111,53 +111,29 @@
     margin:6px 0;
     cursor:pointer;
     width:240px;
-    transition:transform .12s ease, filter .12s ease;
+    transition:transform .12s ease, filter .12s ease, box-shadow .12s ease;
   }
   .btn:active{ transform:scale(0.96); }
-  .btn-primary{ background:var(--base-blue); color:white; }
-  .btn-gold{ background:var(--gold); color:var(--navy); }
-  .btn-outline{
-    background:transparent; color:var(--cream);
-    border:1.5px solid rgba(245,247,250,0.4);
+  .btn-primary{
+    background:linear-gradient(135deg, var(--base-blue-bright), var(--base-blue) 70%);
+    color:var(--ice);
+    box-shadow:0 8px 24px rgba(0,82,255,0.45);
   }
+  .btn-primary:active{ box-shadow:0 4px 14px rgba(0,82,255,0.4); }
   .btn:disabled{ opacity:0.5; cursor:default; }
   .stat-row{
     display:flex; gap:28px; margin:18px 0 26px;
   }
   .stat{ text-align:center; }
   .stat-num{
-    font-family:var(--font-display); font-weight:700; font-size:26px;
-    color:var(--gold);
+    font-family:var(--font-display); font-weight:700; font-size:30px;
+    color:var(--ice);
+    text-shadow:0 0 20px rgba(111,168,255,0.6);
   }
-  .stat-label{ font-size:11px; opacity:0.65; text-transform:uppercase; letter-spacing:0.08em; }
-  .wallet-line{
-    font-size:12px; opacity:0.6; margin-top:14px; font-family:monospace;
-  }
-  .boost-badge{
-    margin-top:10px; font-size:12px; font-weight:700;
-    color:var(--gold); min-height:16px;
-  }
-  .skins-row{
-    display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; justify-content:center; max-width:280px;
-  }
-  .skin-swatch{
-    width:52px; height:52px; border-radius:14px;
-    display:flex; align-items:center; justify-content:center;
-    border:2px solid rgba(255,255,255,0.15);
-    cursor:pointer; position:relative;
-    background:rgba(0,18,51,0.4);
-    transition:transform .12s ease, border-color .12s ease;
-  }
-  .skin-swatch:active{ transform:scale(0.94); }
-  .skin-swatch.selected{ border-color:var(--gold); }
-  .skin-swatch.locked{ opacity:0.35; cursor:not-allowed; }
-  .skin-swatch .lock{
-    position:absolute; bottom:3px; right:3px; font-size:11px;
-  }
-  .skin-dot{ width:26px; height:26px; border-radius:50%; }
+  .stat-label{ font-size:11px; opacity:0.6; text-transform:uppercase; letter-spacing:0.1em; }
   .controls-hint{
     position:absolute; bottom:12px; left:0; right:0;
-    text-align:center; font-size:11px; opacity:0.55;
+    text-align:center; font-size:11px; opacity:0.5;
     z-index:5; pointer-events:none;
   }
 </style>
@@ -204,8 +180,6 @@
     console.log('Farcaster SDK not available (running outside Farcaster) — that is expected in a plain browser.');
   }
 })();
-
-const currentSkin = { body: '#0052FF' };
 
 /* =========================================================
    GAME: Doodle Jump clone on canvas
@@ -324,39 +298,85 @@ function update(dt) {
 
 function drawPlayer() {
   const x = player.x, y = player.y;
+  const s = 15.5; // cube half-edge in screen px
   ctx.save();
-  ctx.translate(x + PLAYER_W/2, y + PLAYER_H/2);
-  if (player.vx < -0.3) ctx.scale(-1,1);
-  // body — blob in the selected skin color
+  ctx.translate(x + PLAYER_W/2, y + PLAYER_H/2 + 3);
+  // subtle tilt in the direction of travel — keeps the cube feeling alive
+  const tilt = Math.max(-0.22, Math.min(0.22, player.vx * 0.05));
+  ctx.rotate(tilt);
+
+  const top    = { x: 0,        y: -s * 1.65 };
+  const right  = { x: s * 1.5,  y: -s * 0.78 };
+  const left   = { x: -s * 1.5, y: -s * 0.78 };
+  const center = { x: 0,        y: 0 };
+  const botR   = { x: s * 1.5,  y: s * 0.95 };
+  const botL   = { x: -s * 1.5, y: s * 0.95 };
+  const botC   = { x: 0,        y: s * 1.7 };
+
+  const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, s * 2.6);
+  glow.addColorStop(0, 'rgba(111,168,255,0.45)');
+  glow.addColorStop(1, 'rgba(111,168,255,0)');
+  ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.fillStyle = currentSkin.body;
-  ctx.ellipse(0, 4, 19, 17, 0, 0, Math.PI*2);
+  ctx.arc(0, 0, s * 2.6, 0, Math.PI * 2);
   ctx.fill();
-  // eyes
-  ctx.fillStyle = '#F5F7FA';
-  ctx.beginPath(); ctx.ellipse(7, -2, 6, 7, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#001233';
-  ctx.beginPath(); ctx.ellipse(9, -1, 2.6, 3, 0, 0, Math.PI*2); ctx.fill();
-  // horns
-  ctx.strokeStyle = '#0052FF'; ctx.lineWidth = 4; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-6,-14); ctx.lineTo(-10,-22); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(4,-16); ctx.lineTo(2,-24); ctx.stroke();
+
+  const drawFace = (pts, fill) => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(234,241,255,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  };
+
+  // left face (darkest), right face (mid), top face (brightest) — classic
+  // isometric shading so the cube reads as 3D at a glance.
+  drawFace([left, center, botC, botL], '#0032B8');
+  drawFace([right, botR, botC, center], '#0052FF');
+  drawFace([top, right, center, left], '#7FB4FF');
+
+  // a small emblem dot on the top face — nods to the Base mark
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(6,11,31,0.55)';
+  ctx.ellipse(0, -s * 0.78, s * 0.32, s * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.restore();
 }
 
 function drawPlatform(p) {
   ctx.save();
   ctx.translate(p.x, p.y);
-  let color = '#6BCB77';
-  if (p.type === 'moving') color = '#4AB8FF';
-  if (p.type === 'breaking') color = '#C97B4A';
-  if (p.type === 'spring') color = '#FFB800';
-  ctx.fillStyle = color;
+  let top = '#8ED9FF', bottom = '#2F6BFF';
+  if (p.type === 'moving')   { top = '#B9D6FF'; bottom = '#1447D9'; }
+  if (p.type === 'breaking') { top = '#9FB3E0'; bottom = '#3A4A8A'; }
+  if (p.type === 'spring')   { top = '#EAF7FF'; bottom = '#5EEAD4'; }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, PLATFORM_H);
+  grad.addColorStop(0, top);
+  grad.addColorStop(1, bottom);
+  ctx.fillStyle = grad;
+  ctx.shadowColor = 'rgba(47,107,255,0.45)';
+  ctx.shadowBlur = 8;
   ctx.beginPath();
   ctx.roundRect(0, 0, PLATFORM_W, PLATFORM_H, 7);
   ctx.fill();
+  ctx.shadowBlur = 0;
+
+  if (p.type === 'breaking') {
+    ctx.strokeStyle = 'rgba(6,11,31,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PLATFORM_W*0.35, 1); ctx.lineTo(PLATFORM_W*0.5, PLATFORM_H-1);
+    ctx.moveTo(PLATFORM_W*0.68, 0); ctx.lineTo(PLATFORM_W*0.55, PLATFORM_H-2);
+    ctx.stroke();
+  }
   if (p.type === 'spring') {
-    ctx.strokeStyle = '#7A5200'; ctx.lineWidth = 3;
+    ctx.strokeStyle = '#0B1640'; ctx.lineWidth = 3; ctx.lineCap='round';
     ctx.beginPath();
     ctx.moveTo(PLATFORM_W/2 - 8, 0);
     ctx.lineTo(PLATFORM_W/2 - 8, -10);
@@ -366,8 +386,25 @@ function drawPlatform(p) {
   ctx.restore();
 }
 
+function drawGrid() {
+  const spacing = 46;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(111,168,255,0.08)';
+  ctx.lineWidth = 1;
+  const offsetY = camY % spacing;
+  for (let y = -spacing; y < H + spacing; y += spacing) {
+    const yy = y + offsetY;
+    ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke();
+  }
+  for (let x = 0; x < W + spacing; x += spacing) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function draw() {
   ctx.clearRect(0,0,W,H);
+  drawGrid();
   for (const p of platforms) drawPlatform(p);
   drawPlayer();
 }

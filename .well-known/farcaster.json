@@ -11,7 +11,7 @@
     "homeUrl": "https://YOUR_DOMAIN",
     "imageUrl": "https://YOUR_DOMAIN/og-image.png",
     "splashImageUrl": "https://YOUR_DOMAIN/splash.png",
-    "splashBackgroundColor": "#001233",
+    "splashBackgroundColor": "#060B1F",
     "buttonTitle": "🕹️ Play Dooble Base Jump",
     "subtitle": "Jump as high as you can",
     "description": "A Doodle Jump-style platformer built for Base.",
