@@ -757,10 +757,12 @@ async function shareScore() {
   const statusEl = document.getElementById('saveStatus');
   const gameUrl = 'https://dooble-base-jump.vercel.app';
   const text = `I jumped ${score}m in Dooble Base Jump 🎲🔵 Can you beat me?`;
+  statusEl.textContent = 'Opening share…';
 
   if (window.__fcSdk && window.__fcSdk.actions && window.__fcSdk.actions.composeCast) {
     try {
       await window.__fcSdk.actions.composeCast({ text, embeds: [gameUrl] });
+      statusEl.textContent = 'Shared! 🎉';
       return;
     } catch (e) { /* fall through */ }
   }
@@ -768,22 +770,31 @@ async function shareScore() {
   if (navigator.share) {
     try {
       await navigator.share({ text, url: gameUrl });
+      statusEl.textContent = 'Shared! 🎉';
       return;
     } catch (e) {
-      if (e && e.name === 'AbortError') return; // user cancelled the share sheet, not an error
+      if (e && e.name === 'AbortError') { statusEl.textContent = ''; return; } // user cancelled, not an error
       /* fall through */
     }
   }
 
+  // window.open() does NOT throw when a popup is blocked — it silently
+  // returns null. Missing that check was the actual bug: on desktop,
+  // a blocked popup meant the button looked like it did nothing at all.
   const intentUrl = 'https://warpcast.com/~/compose?text=' + encodeURIComponent(text) + '&embeds[]=' + encodeURIComponent(gameUrl);
+  let opened = null;
   try {
-    window.open(intentUrl, '_blank');
+    opened = window.open(intentUrl, '_blank');
+  } catch (e) { opened = null; }
+
+  if (opened) {
+    statusEl.textContent = 'Opened share composer in a new tab ↗';
     return;
-  } catch (e) { /* fall through */ }
+  }
 
   try {
     await navigator.clipboard.writeText(text + ' ' + gameUrl);
-    statusEl.textContent = 'Copied to clipboard — paste it anywhere!';
+    statusEl.textContent = 'Popup blocked — copied share text to clipboard instead!';
   } catch (e) {
     statusEl.textContent = 'Could not share automatically — screenshot it instead!';
   }
