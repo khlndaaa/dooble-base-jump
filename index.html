@@ -244,6 +244,7 @@
     <p class="tagline">Jump as high as you can. Don't fall.</p>
     <button class="btn btn-primary" id="playBtn">Play</button>
     <button class="btn btn-outline" id="connectBtn">Connect Base Wallet</button>
+    <button class="btn btn-outline" id="openInBaseBtn">🔵 Open in Base App</button>
     <button class="btn btn-outline" id="leaderboardBtn">🏆 Leaderboard</button>
     <div class="wallet-line" id="walletLine">wallet not connected</div>
   </div>
@@ -307,7 +308,7 @@ async function connectWallet() {
   const lineEl = document.getElementById('walletLine');
   const provider = await getEip1193Provider();
   if (!provider) {
-    lineEl.textContent = 'no wallet found (open in Base App or install a wallet)';
+    lineEl.textContent = 'no wallet found — try "Open in Base App" below';
     return;
   }
   try {
@@ -328,11 +329,26 @@ async function connectWallet() {
     lineEl.textContent = 'connected: ' + short;
   } catch (e) {
     console.error(e);
-    lineEl.textContent = 'connection rejected';
+    // A plain browser with a locked/conflicting extension is the most
+    // common cause here — steering people to the Base App sidesteps the
+    // whole class of extension issues instead of trying to diagnose them.
+    lineEl.textContent = 'connection rejected — try "Open in Base App" below';
   }
 }
 
 document.getElementById('connectBtn').addEventListener('click', connectWallet);
+
+/* =========================================================
+   OPEN IN BASE APP — deep link that hands the current page
+   straight to the Base App, where wallet connection just works
+   (no extensions, no popup blockers, no "connection rejected").
+   Safe to tap even without Base App installed: unrecognized
+   custom schemes are silently ignored by the browser.
+   ========================================================= */
+document.getElementById('openInBaseBtn').addEventListener('click', () => {
+  const gameUrl = 'https://dooble-base-jump.vercel.app';
+  window.location.href = 'cbwallet://miniapp?url=' + encodeURIComponent(gameUrl);
+});
 
 /* =========================================================
    LEADERBOARD — backed by a small serverless API (/api/leaderboard)
