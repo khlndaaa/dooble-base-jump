@@ -767,21 +767,12 @@ async function shareScore() {
     } catch (e) { /* fall through */ }
   }
 
-  // Web Share API is unreliable on desktop: Windows/Chrome shows a
-  // native flyout that requires registered share targets (Mail, etc.)
-  // and can resolve "successfully" while visibly doing nothing if none
-  // are set up. It's solid on mobile, so only attempt it there.
-  const isTouchDevice = navigator.maxTouchPoints > 0 || matchMedia('(pointer: coarse)').matches;
-  if (isTouchDevice && navigator.share) {
-    try {
-      await navigator.share({ text, url: gameUrl });
-      statusEl.textContent = 'Shared! 🎉';
-      return;
-    } catch (e) {
-      if (e && e.name === 'AbortError') { statusEl.textContent = ''; return; } // user cancelled, not an error
-      /* fall through */
-    }
-  }
+  // Web Share API turned out unreliable across both desktop AND touch
+  // Windows laptops (maxTouchPoints/pointer:coarse both report true on
+  // many non-mobile devices, and the native flyout can silently resolve
+  // without showing anything if no share targets are registered). Skipping
+  // it entirely in favor of a plain link is less "native" on real phones
+  // but is the one path that reliably does something visible everywhere.
 
   // window.open() does NOT throw when a popup is blocked — it silently
   // returns null. Missing that check was the actual bug: on desktop,
