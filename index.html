@@ -767,7 +767,12 @@ async function shareScore() {
     } catch (e) { /* fall through */ }
   }
 
-  if (navigator.share) {
+  // Web Share API is unreliable on desktop: Windows/Chrome shows a
+  // native flyout that requires registered share targets (Mail, etc.)
+  // and can resolve "successfully" while visibly doing nothing if none
+  // are set up. It's solid on mobile, so only attempt it there.
+  const isTouchDevice = navigator.maxTouchPoints > 0 || matchMedia('(pointer: coarse)').matches;
+  if (isTouchDevice && navigator.share) {
     try {
       await navigator.share({ text, url: gameUrl });
       statusEl.textContent = 'Shared! 🎉';
