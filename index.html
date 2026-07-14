@@ -30,33 +30,44 @@
     --font-display:'Space Grotesk', system-ui, sans-serif;
     --font-body:'Inter', system-ui, sans-serif;
 
-    /* dark theme (default) */
+    /* dark theme (default) — a soft "mesh gradient" of overlapping
+       blurred color pools instead of a flat linear fade, which is
+       what most 2026-era product UIs use for a less flat, more
+       tactile-feeling background. */
     --bg-grad:
-      radial-gradient(120% 60% at 50% 0%, #123180 0%, transparent 60%),
+      radial-gradient(60% 45% at 15% 8%, rgba(47,107,255,0.55) 0%, transparent 60%),
+      radial-gradient(55% 40% at 88% 18%, rgba(111,168,255,0.35) 0%, transparent 62%),
+      radial-gradient(70% 50% at 50% 100%, rgba(0,50,184,0.45) 0%, transparent 65%),
       linear-gradient(180deg, #060B1F 0%, #0A1440 55%, #0E1D5C 100%);
     --text:#EAF1FF;
     --text-dim:rgba(234,241,255,0.7);
     --panel-bg:rgba(11,22,64,0.6);
     --panel-border:rgba(111,168,255,0.35);
     --overlay-bg:
-      radial-gradient(90% 60% at 50% 0%, rgba(47,107,255,0.30), transparent 60%),
+      radial-gradient(60% 45% at 15% 8%, rgba(47,107,255,0.35) 0%, transparent 60%),
+      radial-gradient(55% 40% at 88% 15%, rgba(111,168,255,0.22) 0%, transparent 62%),
       rgba(6,11,31,0.88);
-    --grid-line:rgba(111,168,255,0.09);
+    --grid-line:rgba(111,168,255,0.16);
     --toggle-icon-bg:rgba(11,22,64,0.6);
+    --noise-opacity:0.05;
   }
   #app.light{
     --bg-grad:
-      radial-gradient(120% 60% at 50% 0%, rgba(47,107,255,0.16) 0%, transparent 60%),
+      radial-gradient(60% 45% at 15% 8%, rgba(47,107,255,0.22) 0%, transparent 60%),
+      radial-gradient(55% 40% at 88% 18%, rgba(111,168,255,0.18) 0%, transparent 62%),
+      radial-gradient(70% 50% at 50% 100%, rgba(178,204,255,0.5) 0%, transparent 65%),
       linear-gradient(180deg, #F3F7FF 0%, #E4EDFF 55%, #D2E2FF 100%);
     --text:#0B1640;
     --text-dim:rgba(11,22,64,0.65);
     --panel-bg:rgba(255,255,255,0.62);
     --panel-border:rgba(47,107,255,0.28);
     --overlay-bg:
-      radial-gradient(90% 60% at 50% 0%, rgba(47,107,255,0.14), transparent 60%),
+      radial-gradient(60% 45% at 15% 8%, rgba(47,107,255,0.14) 0%, transparent 60%),
+      radial-gradient(55% 40% at 88% 15%, rgba(111,168,255,0.12) 0%, transparent 62%),
       rgba(244,248,255,0.86);
-    --grid-line:rgba(11,22,64,0.08);
+    --grid-line:rgba(11,22,64,0.14);
     --toggle-icon-bg:rgba(255,255,255,0.7);
+    --noise-opacity:0.035;
   }
   @font-face{
     font-family:'Space Grotesk';
@@ -79,6 +90,16 @@
     color:var(--text);
     overflow:hidden;
     transition:background .35s ease, color .35s ease;
+  }
+  /* subtle film-grain texture over everything — the thing that makes a
+     flat gradient read as "premium" instead of "generic app icon" */
+  #app::after{
+    content:'';
+    position:absolute; inset:0; z-index:1;
+    pointer-events:none;
+    opacity:var(--noise-opacity);
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   canvas{
     display:block;
@@ -145,9 +166,22 @@
   .tagline{
     font-size:14px;
     opacity:0.7;
-    margin:0 0 28px;
+    margin:0 0 20px;
     max-width:280px;
   }
+  .day-badge{
+    font-family:var(--font-display); font-size:13px; font-weight:700;
+    color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .streak-row{ display:flex; gap:22px; margin-bottom:18px; }
+  .streak-chip{
+    display:flex; flex-direction:column; align-items:center;
+    background:var(--panel-bg); border:1px solid var(--panel-border);
+    border-radius:14px; padding:10px 18px;
+  }
+  .streak-num{ font-family:var(--font-display); font-weight:700; font-size:22px; color:var(--base-blue-bright); }
+  .streak-label{ font-size:10px; opacity:0.65; text-transform:uppercase; letter-spacing:0.08em; margin-top:2px; }
   .btn{
     font-family:var(--font-display);
     font-weight:700;
@@ -196,6 +230,13 @@
   .save-status{
     font-size:12px; opacity:0.75; margin-top:14px; min-height:16px;
   }
+  .leaderboard-tabs{ display:flex; gap:8px; margin-bottom:14px; }
+  .tab-btn{
+    font-family:var(--font-display); font-weight:700; font-size:13px;
+    background:transparent; color:var(--text-dim); border:1px solid var(--panel-border);
+    border-radius:999px; padding:6px 16px; cursor:pointer;
+  }
+  .tab-btn.active{ background:var(--base-blue); color:#fff; border-color:var(--base-blue); }
   .leaderboard-list{
     width:100%; max-width:300px;
     margin:8px 0 22px;
@@ -241,9 +282,17 @@
 
   <!-- Start screen -->
   <div class="overlay" id="startScreen">
+    <div class="day-badge" id="dayBadge">Day #1</div>
     <h1 class="logo">Dooble Base<br/><span>Jump</span></h1>
-    <p class="tagline">Jump as high as you can. Don't fall.</p>
-    <button class="btn btn-primary" id="playBtn">Play</button>
+    <p class="tagline">A new run every day. Same platforms for everyone.</p>
+    <div class="streak-row">
+      <div class="streak-chip">
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-label">day streak</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="playDailyBtn">🎯 Daily Challenge</button>
+    <button class="btn btn-outline" id="playEndlessBtn">♾️ Endless</button>
     <button class="btn btn-outline" id="connectBtn">Connect Base Wallet</button>
     <button class="btn btn-outline" id="openInBaseBtn">🔵 Open in Base App</button>
     <button class="btn btn-outline" id="leaderboardBtn">🏆 Leaderboard</button>
@@ -252,11 +301,15 @@
 
   <!-- Game over screen -->
   <div class="overlay hidden" id="gameOverScreen">
-    <h1 class="logo">Game Over!</h1>
+    <h1 class="logo" id="gameOverTitle">Game Over!</h1>
     <div class="stat-row">
       <div class="stat">
         <div class="stat-num" id="finalScore">0</div>
         <div class="stat-label">meters</div>
+      </div>
+      <div class="stat" id="streakStat">
+        <div class="stat-num" id="finalStreak">0</div>
+        <div class="stat-label">day streak</div>
       </div>
     </div>
     <button class="btn btn-primary" id="retryBtn">Play Again</button>
@@ -268,6 +321,10 @@
   <!-- Leaderboard screen -->
   <div class="overlay hidden" id="leaderboardScreen">
     <h1 class="logo">Top Jumpers</h1>
+    <div class="leaderboard-tabs">
+      <button class="tab-btn active" id="tabDaily">Today</button>
+      <button class="tab-btn" id="tabAllTime">All-time</button>
+    </div>
     <div class="leaderboard-list" id="leaderboardList"></div>
     <button class="btn btn-primary" id="closeLeaderboardBtn">Close</button>
   </div>
@@ -286,6 +343,65 @@
     console.log('Farcaster SDK not available (running outside Farcaster) — that is expected in a plain browser.');
   }
 })();
+
+/* =========================================================
+   DAILY CHALLENGE — everyone gets the same platform layout on
+   a given UTC day, so "Daily Challenge" runs are directly
+   comparable. "Endless" mode stays fully random, as before.
+   ========================================================= */
+const LAUNCH_DATE_UTC = Date.UTC(2026, 6, 13); // 2026-07-13, day #1
+
+function todayUTCString() {
+  const d = new Date();
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+}
+function dayNumber() {
+  const now = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+  return Math.floor((now - LAUNCH_DATE_UTC) / 86400000) + 1;
+}
+function hashStringToInt(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  let a = seed;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const DAILY_SEED = hashStringToInt(todayUTCString());
+
+// `rand` is what spawnPlatform() actually calls. resetGame() points it
+// at a fresh seeded generator for Daily Challenge (so retries reproduce
+// the exact same run), or at Math.random for Endless.
+let rand = Math.random;
+let gameMode = 'daily'; // 'daily' | 'endless'
+
+const STREAK_KEY = 'dbj_streak_v1';
+function readStreak() {
+  try {
+    const raw = localStorage.getItem(STREAK_KEY);
+    if (!raw) return { lastDate: null, streak: 0 };
+    return JSON.parse(raw);
+  } catch (e) { return { lastDate: null, streak: 0 }; }
+}
+function writeStreak(data) {
+  try { localStorage.setItem(STREAK_KEY, JSON.stringify(data)); } catch (e) {}
+}
+function registerTodaysRun() {
+  const today = todayUTCString();
+  const data = readStreak();
+  if (data.lastDate === today) return data.streak;
+  const yesterday = new Date(Date.now() - 86400000);
+  const yStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0');
+  const newStreak = data.lastDate === yStr ? data.streak + 1 : 1;
+  writeStreak({ lastDate: today, streak: newStreak });
+  return newStreak;
+}
 
 /* =========================================================
    WALLET — Base App / Farcaster wallet connection, read-only.
@@ -367,10 +483,12 @@ async function submitScore(finalScore) {
   }
   try {
     statusEl.textContent = 'Saving score…';
+    const body = { player: playerLabel(), score: finalScore };
+    if (gameMode === 'daily') body.day = todayUTCString();
     const res = await fetch('/api/leaderboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player: playerLabel(), score: finalScore }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error('bad response');
     statusEl.textContent = 'Saved to the leaderboard ✅';
@@ -380,11 +498,13 @@ async function submitScore(finalScore) {
   }
 }
 
+let currentLeaderboardTab = 'daily';
 async function loadLeaderboard() {
   const listEl = document.getElementById('leaderboardList');
   listEl.innerHTML = '<div class="leaderboard-empty">Loading…</div>';
   try {
-    const res = await fetch('/api/leaderboard');
+    const qs = currentLeaderboardTab === 'daily' ? ('?day=' + encodeURIComponent(todayUTCString())) : '?scope=alltime';
+    const res = await fetch('/api/leaderboard' + qs);
     if (!res.ok) throw new Error('bad response');
     const data = await res.json();
     const entries = data.leaderboard || [];
@@ -416,6 +536,18 @@ document.getElementById('viewLeaderboardBtn').addEventListener('click', openLead
 document.getElementById('closeLeaderboardBtn').addEventListener('click', () => {
   document.getElementById('leaderboardScreen').classList.add('hidden');
   document.getElementById('startScreen').classList.remove('hidden');
+});
+document.getElementById('tabDaily').addEventListener('click', () => {
+  currentLeaderboardTab = 'daily';
+  document.getElementById('tabDaily').classList.add('active');
+  document.getElementById('tabAllTime').classList.remove('active');
+  loadLeaderboard();
+});
+document.getElementById('tabAllTime').addEventListener('click', () => {
+  currentLeaderboardTab = 'alltime';
+  document.getElementById('tabAllTime').classList.add('active');
+  document.getElementById('tabDaily').classList.remove('active');
+  loadLeaderboard();
 });
 
 /* =========================================================
@@ -471,6 +603,7 @@ let lastTime = 0;
 
 function resetGame() {
   resize();
+  rand = gameMode === 'daily' ? mulberry32(DAILY_SEED) : Math.random;
   player = { x: W/2 - PLAYER_W/2, y: H - 140, vx: 0, vy: JUMP_V, dir: 1 };
   platforms = [];
   camY = 0;
@@ -483,16 +616,16 @@ function resetGame() {
 
   let y = H - 90;
   while (y > -H) {
-    y -= 55 + Math.random()*35;
+    y -= 55 + rand()*35;
     platforms.push(spawnPlatform(y));
   }
 }
 
 function spawnPlatform(y) {
-  const r = Math.random();
-  const x = 20 + Math.random() * (W - 40 - PLATFORM_W);
+  const r = rand();
+  const x = 20 + rand() * (W - 40 - PLATFORM_W);
   if (r < 0.12) return { x, y, type:'spring', vx:0 };
-  if (r < 0.30) return { x, y, type:'moving', vx: (Math.random()<0.5?-1:1) * (1 + Math.random()) };
+  if (r < 0.30) return { x, y, type:'moving', vx: (rand()<0.5?-1:1) * (1 + rand()) };
   if (r < 0.42) return { x, y, type:'breaking', vx:0 };
   return { x, y, type:'static', vx:0 };
 }
@@ -553,7 +686,7 @@ function update(dt) {
   platforms = platforms.filter(p => p.y < H + 40 && !p.dead);
   while (platforms.length < 9) {
     const topY = Math.min(...platforms.map(p => p.y));
-    platforms.push(spawnPlatform(topY - (55 + Math.random()*35)));
+    platforms.push(spawnPlatform(topY - (55 + rand()*35)));
   }
 
   document.getElementById('scoreHud').textContent = score + ' m';
@@ -705,17 +838,17 @@ function drawPlatform(p) {
 }
 
 function drawGrid() {
-  const spacing = 46;
+  const spacing = 40;
   ctx.save();
-  ctx.strokeStyle = gridLineColor;
-  ctx.lineWidth = 1;
+  ctx.fillStyle = gridLineColor;
   const offsetY = camY % spacing;
   for (let y = -spacing; y < H + spacing; y += spacing) {
     const yy = y + offsetY;
-    ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke();
-  }
-  for (let x = 0; x < W + spacing; x += spacing) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    for (let x = 0; x < W + spacing; x += spacing) {
+      ctx.beginPath();
+      ctx.arc(x, yy, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -738,6 +871,18 @@ function endGame() {
   running = false;
   document.getElementById('finalScore').textContent = score;
   document.getElementById('saveStatus').textContent = '';
+  document.getElementById('gameOverTitle').textContent = gameMode === 'daily' ? 'Daily Run Over!' : 'Game Over!';
+
+  const streakStatEl = document.getElementById('streakStat');
+  if (gameMode === 'daily') {
+    const streakAfter = registerTodaysRun();
+    document.getElementById('finalStreak').textContent = streakAfter;
+    document.getElementById('streakNum').textContent = streakAfter;
+    streakStatEl.style.display = '';
+  } else {
+    streakStatEl.style.display = 'none';
+  }
+
   document.getElementById('gameOverScreen').classList.remove('hidden');
   submitScore(score);
 }
@@ -756,7 +901,9 @@ function endGame() {
 async function shareScore() {
   const statusEl = document.getElementById('saveStatus');
   const gameUrl = 'https://dooble-base-jump.vercel.app';
-  const text = `I jumped ${score}m in Dooble Base Jump 🎲🔵 Can you beat me?`;
+  const text = gameMode === 'daily'
+    ? `Dooble Base Jump — Day #${dayNumber()}\nI jumped ${score}m 🎲🔵 🔥 streak: ${readStreak().streak}\nCan you beat it on today's run?`
+    : `I jumped ${score}m in Dooble Base Jump 🎲🔵 Can you beat me?`;
   statusEl.textContent = 'Opening share…';
 
   if (window.__fcSdk && window.__fcSdk.actions && window.__fcSdk.actions.composeCast) {
@@ -823,24 +970,23 @@ function bindControls() {
 /* =========================================================
    UI WIRING
    ========================================================= */
-document.getElementById('playBtn').onclick = () => {
+function startRun(mode) {
+  gameMode = mode;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('gameOverScreen').classList.add('hidden');
   document.getElementById('leaderboardScreen').classList.add('hidden');
   resetGame();
   lastTime = performance.now();
   requestAnimationFrame(loop);
-};
-document.getElementById('retryBtn').onclick = () => {
-  document.getElementById('gameOverScreen').classList.add('hidden');
-  document.getElementById('leaderboardScreen').classList.add('hidden');
-  resetGame();
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-};
+}
+document.getElementById('playDailyBtn').onclick = () => startRun('daily');
+document.getElementById('playEndlessBtn').onclick = () => startRun('endless');
+document.getElementById('retryBtn').onclick = () => startRun(gameMode);
 resize();
 bindControls();
 setTheme('dark');
+document.getElementById('dayBadge').textContent = 'Day #' + dayNumber();
+document.getElementById('streakNum').textContent = readStreak().streak;
 </script>
 </body>
 </html>
