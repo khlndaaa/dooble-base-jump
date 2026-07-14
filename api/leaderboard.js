@@ -7,15 +7,26 @@
 //   Vercel automatically adds KV_REST_API_URL and KV_REST_API_TOKEN as
 //   environment variables and redeploys. Nothing else to configure.
 //
-// Data model: a single Redis sorted set "dbj:leaderboard" where the
-// member is a player label (wallet short-address) and the score is the
-// best height (in meters) that player has reached. ZADD with GT+CH means
-// we only ever keep each player's personal best.
+// Data model: two kinds of Redis sorted sets.
+//   - "dbj:leaderboard:{day}" — Daily Challenge scores for that UTC day
+//     only, since every player gets the same platform layout that day
+//     and results are directly comparable.
+//   - "dbj:leaderboard" (all-time) — best score ever per player label,
+//     from either Daily Challenge or Endless runs (same as before this
+//     feature existed, kept for continuity).
+// ZADD with GT+CH means we only ever keep each player's personal best
+// in a given set.
 
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
-const LEADERBOARD_KEY = 'dbj:leaderboard';
+const ALLTIME_KEY = 'dbj:leaderboard';
 const MAX_SCORE = 1_000_000; // sanity ceiling, well above anything reachable legitimately
+
+function dailyKey(day) { return `dbj:leaderboard:${day}`; }
+function todayUTCString() {
+  const d = new Date();
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+}
 
 async function upstash(command) {
   const res = await fetch(KV_URL, {
@@ -42,13 +53,17 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      const data = await upstash(['ZRANGE', LEADERBOARD_KEY, '0', '9', 'REV', 'WITHSCORES']);
+      const scope = req.query?.scope;
+      const day = req.query?.day || todayUTCString();
+      const key = scope === 'alltime' ? ALLTIME_KEY : dailyKey(day);
+
+      const data = await upstash(['ZRANGE', key, '0', '9', 'REV', 'WITHSCORES']);
       const flat = data.result || [];
       const leaderboard = [];
       for (let i = 0; i < flat.length; i += 2) {
         leaderboard.push({ player: flat[i], score: Number(flat[i + 1]) });
       }
-      res.status(200).json({ leaderboard });
+      res.status(200).json({ leaderboard, day, scope: scope === 'alltime' ? 'alltime' : 'daily' });
       return;
     }
 
@@ -59,6 +74,7 @@ module.exports = async (req, res) => {
       }
       const player = typeof body?.player === 'string' ? body.player.slice(0, 40) : null;
       const score = Number(body?.score);
+      const day = typeof body?.day === 'string' ? body.day : null; // only set for Daily Challenge runs
 
       if (!player || !Number.isFinite(score) || score < 0 || score > MAX_SCORE) {
         res.status(400).json({ error: 'invalid payload' });
@@ -67,7 +83,10 @@ module.exports = async (req, res) => {
 
       // GT: only update if the new score beats the player's stored best.
       // CH: report whether the member's score actually changed.
-      await upstash(['ZADD', LEADERBOARD_KEY, 'GT', 'CH', String(Math.floor(score)), player]);
+      if (day) {
+        await upstash(['ZADD', dailyKey(day), 'GT', 'CH', String(Math.floor(score)), player]);
+      }
+      await upstash(['ZADD', ALLTIME_KEY, 'GT', 'CH', String(Math.floor(score)), player]);
       res.status(200).json({ ok: true });
       return;
     }
