@@ -1,0 +1,10 @@
+*.mp4
+*.webm
+video_raw*/
+frames_check*/
+record*.py
+debug_test.py
+reactive_test.py
+screenshot_test.py
+determinism_test.py
+node_modules/
