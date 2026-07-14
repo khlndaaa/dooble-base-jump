@@ -284,11 +284,15 @@
   <div class="overlay" id="startScreen">
     <div class="day-badge" id="dayBadge">Day #1</div>
     <h1 class="logo">Dooble Base<br/><span>Jump</span></h1>
-    <p class="tagline">A new run every day. Same platforms for everyone.</p>
+    <p class="tagline" id="goalTagline">A new run every day. Same platforms for everyone.</p>
     <div class="streak-row">
       <div class="streak-chip">
         <div class="streak-num" id="streakNum">0</div>
         <div class="streak-label">day streak</div>
+      </div>
+      <div class="streak-chip">
+        <div class="streak-num" id="goalNum">0m</div>
+        <div class="streak-label">today's goal</div>
       </div>
     </div>
     <button class="btn btn-primary" id="playDailyBtn">🎯 Daily Challenge</button>
@@ -315,6 +319,7 @@
     <button class="btn btn-primary" id="retryBtn">Play Again</button>
     <button class="btn btn-outline" id="shareBtn">📤 Share score</button>
     <button class="btn btn-outline" id="viewLeaderboardBtn">🏆 Leaderboard</button>
+    <div class="save-status" id="goalStatus"></div>
     <div class="save-status" id="saveStatus"></div>
   </div>
 
@@ -375,6 +380,13 @@ function mulberry32(seed) {
 }
 const DAILY_SEED = hashStringToInt(todayUTCString());
 
+// Today's goal — deterministic from the same daily seed (a different
+// derived stream than the platform layout, via XOR, so it doesn't
+// consume rand() calls used for platforms), 120–220m, rounded to a
+// clean number of meters.
+const goalRandom = mulberry32(DAILY_SEED ^ 0x51ED270B);
+const DAILY_GOAL = Math.round((120 + goalRandom() * 100) / 10) * 10;
+
 // `rand` is what spawnPlatform() actually calls. resetGame() points it
 // at a fresh seeded generator for Daily Challenge (so retries reproduce
 // the exact same run), or at Math.random for Endless.
@@ -391,6 +403,14 @@ function readStreak() {
 }
 function writeStreak(data) {
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(data)); } catch (e) {}
+}
+// The streak's lastDate doubles as "last day the goal was completed" —
+// registerTodaysRun() is only ever called once the player actually
+// clears DAILY_GOAL, not just for opening the app, so a streak means
+// "days in a row I completed the challenge", the same way a Wordle
+// streak means "days in a row I solved it".
+function isCompletedToday() {
+  return readStreak().lastDate === todayUTCString();
 }
 function registerTodaysRun() {
   const today = todayUTCString();
@@ -536,6 +556,7 @@ document.getElementById('viewLeaderboardBtn').addEventListener('click', openLead
 document.getElementById('closeLeaderboardBtn').addEventListener('click', () => {
   document.getElementById('leaderboardScreen').classList.add('hidden');
   document.getElementById('startScreen').classList.remove('hidden');
+  refreshStartScreenDailyInfo();
 });
 document.getElementById('tabDaily').addEventListener('click', () => {
   currentLeaderboardTab = 'daily';
@@ -871,15 +892,32 @@ function endGame() {
   running = false;
   document.getElementById('finalScore').textContent = score;
   document.getElementById('saveStatus').textContent = '';
-  document.getElementById('gameOverTitle').textContent = gameMode === 'daily' ? 'Daily Run Over!' : 'Game Over!';
+  const goalStatusEl = document.getElementById('goalStatus');
 
   const streakStatEl = document.getElementById('streakStat');
   if (gameMode === 'daily') {
-    const streakAfter = registerTodaysRun();
-    document.getElementById('finalStreak').textContent = streakAfter;
-    document.getElementById('streakNum').textContent = streakAfter;
+    const alreadyCompletedBefore = isCompletedToday();
+    const goalReachedNow = score >= DAILY_GOAL;
+
+    if (goalReachedNow && !alreadyCompletedBefore) {
+      const streakAfter = registerTodaysRun();
+      document.getElementById('gameOverTitle').textContent = '🎉 Challenge Complete!';
+      document.getElementById('finalStreak').textContent = streakAfter;
+      goalStatusEl.textContent = `Goal reached (${DAILY_GOAL}m)! Streak is now ${streakAfter} 🔥`;
+    } else if (goalReachedNow && alreadyCompletedBefore) {
+      document.getElementById('gameOverTitle').textContent = 'Nice run!';
+      document.getElementById('finalStreak').textContent = readStreak().streak;
+      goalStatusEl.textContent = 'Already completed today — great replay score!';
+    } else {
+      document.getElementById('gameOverTitle').textContent = 'So close!';
+      document.getElementById('finalStreak').textContent = readStreak().streak;
+      goalStatusEl.textContent = `Need ${DAILY_GOAL - score}m more to complete today's challenge — try again!`;
+    }
+    document.getElementById('streakNum').textContent = readStreak().streak;
     streakStatEl.style.display = '';
   } else {
+    document.getElementById('gameOverTitle').textContent = 'Game Over!';
+    goalStatusEl.textContent = '';
     streakStatEl.style.display = 'none';
   }
 
@@ -985,8 +1023,15 @@ document.getElementById('retryBtn').onclick = () => startRun(gameMode);
 resize();
 bindControls();
 setTheme('dark');
-document.getElementById('dayBadge').textContent = 'Day #' + dayNumber();
-document.getElementById('streakNum').textContent = readStreak().streak;
+function refreshStartScreenDailyInfo() {
+  document.getElementById('dayBadge').textContent = 'Day #' + dayNumber();
+  document.getElementById('streakNum').textContent = readStreak().streak;
+  document.getElementById('goalNum').textContent = DAILY_GOAL + 'm';
+  document.getElementById('goalTagline').textContent = isCompletedToday()
+    ? '✅ Today\'s challenge complete — play again for a higher score!'
+    : `Today's goal: reach ${DAILY_GOAL}m. Same platforms for everyone.`;
+}
+refreshStartScreenDailyInfo();
 </script>
 </body>
 </html>
