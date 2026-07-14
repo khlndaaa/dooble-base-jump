@@ -378,20 +378,109 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const DAILY_SEED = hashStringToInt(todayUTCString());
-
-// Today's goal — deterministic from the same daily seed (a different
-// derived stream than the platform layout, via XOR, so it doesn't
-// consume rand() calls used for platforms), 120–220m, rounded to a
-// clean number of meters.
-const goalRandom = mulberry32(DAILY_SEED ^ 0x51ED270B);
-const DAILY_GOAL = Math.round((120 + goalRandom() * 100) / 10) * 10;
+// DAILY_SEED and DAILY_GOAL are computed later, once the canvas is
+// sized (W/H) and the physics/spawn functions are defined below — see
+// findClimbableDailySeed() and its call near the bottom of this script.
+// Assigning them here to `undefined` first documents the intent and
+// avoids a temporal-dead-zone footgun if anything reads them too early.
+let DAILY_SEED;
+let DAILY_GOAL;
 
 // `rand` is what spawnPlatform() actually calls. resetGame() points it
 // at a fresh seeded generator for Daily Challenge (so retries reproduce
 // the exact same run), or at Math.random for Endless.
 let rand = Math.random;
 let gameMode = 'daily'; // 'daily' | 'endless'
+
+/* =========================================================
+   DAILY SEED VALIDATION — a fixed daily platform layout is only fair
+   if it's actually climbable. Unlike Endless (bad luck just means
+   retry with a new random layout), a bad Daily seed would be broken
+   for literally everyone, all day. So before committing to a seed, we
+   run a fast headless simulation of a "perfect" run (same steering
+   logic as a smart bot: always aim for the nearest safe platform
+   above) far past the daily goal, and if it can't get there, we
+   deterministically try the next candidate seed instead. Every device
+   computes this the same way, so everyone still converges on the same
+   final seed for a given day.
+   ========================================================= */
+function simulateClimbable(seed, targetCamY, maxVirtualMs) {
+  const savedRand = rand;
+  rand = mulberry32(seed);
+  try {
+    let simPlayer = { x: W / 2 - PLAYER_W / 2, y: H - 140, vx: 0, vy: JUMP_V };
+    let simPlatforms = [{ x: W / 2 - PLATFORM_W / 2, y: H - 90, type: 'static', vx: 0 }];
+    let y = H - 90;
+    while (y > -H) { y -= 55 + rand() * 35; simPlatforms.push(spawnPlatform(y)); }
+
+    let simCamY = 0;
+    const dtMs = 1000 / 60;
+    for (let elapsed = 0; elapsed < maxVirtualMs; elapsed += dtMs) {
+      const centerX = simPlayer.x + PLAYER_W / 2;
+      const candidates = simPlatforms.filter(p => !p.dead && p.y < simPlayer.y + PLAYER_H).sort((a, b) => b.y - a.y);
+      let target = null;
+      for (const p of candidates) { if (p.type === 'breaking') continue; target = p; break; }
+      if (!target && candidates.length) target = candidates[0];
+
+      let moveLeft = false, moveRight = false;
+      if (target) {
+        const diff = (target.x + PLATFORM_W / 2) - centerX;
+        if (diff > 8) moveRight = true; else if (diff < -8) moveLeft = true;
+      }
+      const accel = 0.9;
+      if (moveLeft) simPlayer.vx = Math.max(simPlayer.vx - accel, -6);
+      else if (moveRight) simPlayer.vx = Math.min(simPlayer.vx + accel, 6);
+      else simPlayer.vx *= 0.85;
+      simPlayer.x += simPlayer.vx;
+      if (simPlayer.x < -PLAYER_W) simPlayer.x = W;
+      if (simPlayer.x > W) simPlayer.x = -PLAYER_W;
+
+      simPlayer.vy += GRAVITY;
+      simPlayer.y += simPlayer.vy;
+      const threshold = H * 0.42;
+      if (simPlayer.y < threshold) {
+        const dy = threshold - simPlayer.y;
+        simPlayer.y = threshold;
+        simCamY += dy;
+        for (const p of simPlatforms) p.y += dy;
+      }
+      for (const p of simPlatforms) {
+        if (p.type === 'moving') { p.x += p.vx * 1.6; if (p.x < 10 || p.x > W - 10 - PLATFORM_W) p.vx *= -1; }
+      }
+      if (simPlayer.vy > 0) {
+        for (const p of simPlatforms) {
+          if (p.dead) continue;
+          const px = simPlayer.x + 6, pw = PLAYER_W - 12;
+          const withinX = px + pw > p.x && px < p.x + PLATFORM_W;
+          const withinY = simPlayer.y + PLAYER_H > p.y && simPlayer.y + PLAYER_H < p.y + PLATFORM_H + 14;
+          if (withinX && withinY) {
+            if (p.type === 'breaking') { p.dead = true; continue; }
+            simPlayer.vy = p.type === 'spring' ? SPRING_V : JUMP_V;
+          }
+        }
+      }
+      simPlatforms = simPlatforms.filter(p => p.y < H + 40 && !p.dead);
+      while (simPlatforms.length < 9) {
+        const topY = Math.min(...simPlatforms.map(p => p.y));
+        simPlatforms.push(spawnPlatform(topY - (55 + rand() * 35)));
+      }
+      if (simPlayer.y > H + 60) return false; // the bot died — this seed is unsafe
+      if (simCamY >= targetCamY) return true; // comfortably past the target — safe
+    }
+    return simCamY >= targetCamY;
+  } finally {
+    rand = savedRand;
+  }
+}
+function findClimbableDailySeed(dateStr, targetMeters) {
+  const targetCamY = targetMeters * 8;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const candidateStr = attempt === 0 ? dateStr : (dateStr + '#' + attempt);
+    const candidateSeed = hashStringToInt(candidateStr);
+    if (simulateClimbable(candidateSeed, targetCamY, 70000)) return candidateSeed;
+  }
+  return hashStringToInt(dateStr); // shouldn't happen, but never leave it unset
+}
 
 const STREAK_KEY = 'dbj_streak_v1';
 function readStreak() {
@@ -1021,6 +1110,14 @@ document.getElementById('playDailyBtn').onclick = () => startRun('daily');
 document.getElementById('playEndlessBtn').onclick = () => startRun('endless');
 document.getElementById('retryBtn').onclick = () => startRun(gameMode);
 resize();
+
+// Now that W/H are real and spawnPlatform/physics constants exist,
+// resolve the actual seed for today — validated to be climbable well
+// past the daily goal (see findClimbableDailySeed above).
+DAILY_SEED = findClimbableDailySeed(todayUTCString(), 400);
+const goalRandom = mulberry32(DAILY_SEED ^ 0x51ED270B);
+DAILY_GOAL = Math.round((120 + goalRandom() * 100) / 10) * 10;
+
 bindControls();
 setTheme('dark');
 function refreshStartScreenDailyInfo() {
