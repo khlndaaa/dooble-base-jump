@@ -91,11 +91,14 @@
     overflow:hidden;
     transition:background .35s ease, color .35s ease;
   }
-  /* subtle film-grain texture over everything — the thing that makes a
-     flat gradient read as "premium" instead of "generic app icon" */
-  #app::after{
+  /* subtle film-grain texture — kept on the (static) menu overlays only.
+     Applying this over the live game canvas forced the browser to
+     recompute a blend-mode composite every single animation frame,
+     which is cheap on a desktop GPU but visibly laggy on weaker mobile
+     webviews (this is what caused the Base App slowdown). */
+  .overlay::after{
     content:'';
-    position:absolute; inset:0; z-index:1;
+    position:absolute; inset:0; z-index:-1;
     pointer-events:none;
     opacity:var(--noise-opacity);
     mix-blend-mode:overlay;
@@ -686,6 +689,8 @@ themeToggleBtn.addEventListener('click', () => {
    GAME: Doodle Jump clone on canvas
    ========================================================= */
 const canvas = document.getElementById('game');
+const scoreHudEl = document.getElementById('scoreHud');
+let lastDisplayedScore = -1;
 const ctx = canvas.getContext('2d');
 let W, H, DPR;
 let playerGlowGradient = null; // built once on first draw, see drawPlayer()
@@ -718,6 +723,7 @@ function resetGame() {
   platforms = [];
   camY = 0;
   score = 0;
+  lastDisplayedScore = -1;
   running = true;
   keys = { left:false, right:false };
 
@@ -792,14 +798,26 @@ function update(dt) {
     }
   }
 
-  // drop platforms that fell off-screen, spawn new ones above
-  platforms = platforms.filter(p => p.y < H + 40 && !p.dead);
+  // drop platforms that fell off-screen, spawn new ones above.
+  // Iterating backwards and splicing in place avoids allocating a brand
+  // new array 60 times a second (what `.filter()` does) — small on its
+  // own, but garbage-collector pressure from constant small allocations
+  // is exactly the kind of thing that shows up as periodic frame-time
+  // spikes/stutter on weaker mobile GPUs.
+  for (let i = platforms.length - 1; i >= 0; i--) {
+    const p = platforms[i];
+    if (p.y >= H + 40 || p.dead) platforms.splice(i, 1);
+  }
   while (platforms.length < 9) {
-    const topY = Math.min(...platforms.map(p => p.y));
+    let topY = platforms[0].y;
+    for (let i = 1; i < platforms.length; i++) if (platforms[i].y < topY) topY = platforms[i].y;
     platforms.push(spawnPlatform(topY - (55 + rand()*35)));
   }
 
-  document.getElementById('scoreHud').textContent = score + ' m';
+  if (score !== lastDisplayedScore) {
+    scoreHudEl.textContent = score + ' m';
+    lastDisplayedScore = score;
+  }
 
   if (player.y > H + 60) endGame();
 }
@@ -947,19 +965,41 @@ function drawPlatform(p) {
   ctx.restore();
 }
 
+// Pre-render the dot-grid tile once into an offscreen canvas and reuse
+// it as a repeating fill pattern. The old approach called arc()+fill()
+// ~250+ times per frame (once per dot) — cheap on a desktop GPU, but
+// expensive enough on weaker mobile webviews (like Base App's in-app
+// browser) to visibly lag. A single fillRect() with a pattern costs
+// roughly the same regardless of how many dots are visible.
+let dotPattern = null;
+let dotPatternColor = null;
+const GRID_SPACING = 40;
+function getDotPattern() {
+  if (dotPattern && dotPatternColor === gridLineColor) return dotPattern;
+  // Tile is sized in plain CSS-equivalent pixels (no DPR multiply) —
+  // pattern tiling uses the source image's raw pixel dimensions as the
+  // repeat interval, so multiplying by DPR here would silently double
+  // the dot spacing on Retina-class screens. The dots are only ~1.4px
+  // anyway, so we don't lose meaningfully crisp detail by keeping the
+  // tile at 1x.
+  const tile = document.createElement('canvas');
+  tile.width = GRID_SPACING;
+  tile.height = GRID_SPACING;
+  const tctx = tile.getContext('2d');
+  tctx.fillStyle = gridLineColor;
+  tctx.beginPath();
+  tctx.arc(GRID_SPACING / 2, GRID_SPACING / 2, 1.4, 0, Math.PI * 2);
+  tctx.fill();
+  dotPattern = ctx.createPattern(tile, 'repeat');
+  dotPatternColor = gridLineColor;
+  return dotPattern;
+}
 function drawGrid() {
-  const spacing = 40;
+  const offsetY = camY % GRID_SPACING;
   ctx.save();
-  ctx.fillStyle = gridLineColor;
-  const offsetY = camY % spacing;
-  for (let y = -spacing; y < H + spacing; y += spacing) {
-    const yy = y + offsetY;
-    for (let x = 0; x < W + spacing; x += spacing) {
-      ctx.beginPath();
-      ctx.arc(x, yy, 1.4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
+  ctx.translate(0, offsetY);
+  ctx.fillStyle = getDotPattern();
+  ctx.fillRect(-GRID_SPACING, -GRID_SPACING - offsetY, W + GRID_SPACING * 2, H + GRID_SPACING * 2);
   ctx.restore();
 }
 
