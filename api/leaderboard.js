@@ -43,6 +43,26 @@ async function upstash(command) {
   return res.json();
 }
 
+// Runs multiple Redis commands in a single HTTP round-trip instead of
+// one request per command. Matters at scale: with many people
+// submitting scores at once, halving the number of outbound requests
+// per submission meaningfully cuts both latency and the total request
+// volume hitting Upstash/Vercel under concurrent load.
+async function upstashPipeline(commands) {
+  const res = await fetch(`${KV_URL}/pipeline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${KV_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(commands),
+  });
+  if (!res.ok) {
+    throw new Error(`Upstash pipeline request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 module.exports = async (req, res) => {
   if (!KV_URL || !KV_TOKEN) {
     res.status(500).json({
@@ -83,10 +103,9 @@ module.exports = async (req, res) => {
 
       // GT: only update if the new score beats the player's stored best.
       // CH: report whether the member's score actually changed.
-      if (day) {
-        await upstash(['ZADD', dailyKey(day), 'GT', 'CH', String(Math.floor(score)), player]);
-      }
-      await upstash(['ZADD', ALLTIME_KEY, 'GT', 'CH', String(Math.floor(score)), player]);
+      const commands = [['ZADD', ALLTIME_KEY, 'GT', 'CH', String(Math.floor(score)), player]];
+      if (day) commands.unshift(['ZADD', dailyKey(day), 'GT', 'CH', String(Math.floor(score)), player]);
+      await upstashPipeline(commands);
       res.status(200).json({ ok: true });
       return;
     }
